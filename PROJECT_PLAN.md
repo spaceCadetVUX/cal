@@ -916,27 +916,27 @@ src/
 
 ---
 
-### Sprint 1.4 — Layout & Navigation
+### Sprint 1.4 — Layout & Navigation ✅
 > **Mục tiêu:** Layout chính + routing hoàn chỉnh, điều hướng giữa các trang
 > `[dep: 1.1]`
 > **Done:** Click từng menu item → đúng trang, không lỗi console
 
-- [ ] Tạo `src/components/layout/Sidebar.tsx`
+- [x] Tạo `src/components/layout/Sidebar.tsx`
   - Logo + tên app
   - Menu items: Dashboard, Kênh bán, Danh mục, NCC, Khách hàng, Sản phẩm, Nhập hàng, Tồn kho, Giá, Đơn bán, Chi phí, Báo cáo, Cài đặt
   - Active state theo route hiện tại
   - Collapse/expand sidebar
-- [ ] Tạo `src/components/layout/Header.tsx`
+- [x] Tạo `src/components/layout/Header.tsx`
   - Tiêu đề trang hiện tại
   - Nút tìm kiếm toàn cục (placeholder, chức năng Phase 2)
   - Thông báo / alert badge
-- [ ] Tạo `src/components/layout/PageLayout.tsx` — wrapper cho mọi trang (title + children)
-- [ ] Cấu hình React Router: tất cả routes cho 12 module + 404 page
-- [ ] Tạo placeholder page cho từng module (chỉ render tên trang)
-- [ ] Tạo `src/components/shared/StatCard.tsx` — thẻ KPI tái sử dụng
-- [ ] Tạo `src/components/shared/DataTable.tsx` — wrapper TanStack Table với sort/filter/pagination
-- [ ] Tạo `src/components/shared/ConfirmDialog.tsx` — dialog xác nhận xóa
-- [ ] Tạo `src/components/shared/ChannelBadge.tsx` — badge màu tên kênh
+- [x] Tạo `src/components/layout/PageLayout.tsx` — wrapper cho mọi trang (title + children)
+- [x] Cấu hình React Router: tất cả routes cho 12 module + 404 page
+- [x] Tạo placeholder page cho từng module (chỉ render tên trang)
+- [x] Tạo `src/components/shared/StatCard.tsx` — thẻ KPI tái sử dụng
+- [x] Tạo `src/components/shared/DataTable.tsx` — wrapper TanStack Table với sort/filter/pagination
+- [x] Tạo `src/components/shared/ConfirmDialog.tsx` — dialog xác nhận xóa
+- [x] Tạo `src/components/shared/ChannelBadge.tsx` — badge màu tên kênh
 
 ---
 

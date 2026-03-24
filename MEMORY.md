@@ -83,7 +83,8 @@
 - [x] **1.1** Project Setup ✅
 - [x] **1.2** Database Layer ✅
 - [x] **1.3** Utility Functions ✅
-- [ ] **1.4** Layout & Navigation ← **TIẾP THEO**
+- [x] **1.4** Layout & Navigation ✅
+- [ ] **1.5** Settings & Channels ← **TIẾP THEO**
 - [ ] **1.5** Settings & Channels
 - [ ] **1.6** Categories, Suppliers, Customers
 - [ ] **1.7** Products
@@ -108,11 +109,31 @@ src/
 ├── assets/
 ├── components/ui/
 ├── components/layout/
+│   ├── AppLayout.tsx   ← shell: Sidebar + Header + <Outlet>
+│   ├── Sidebar.tsx     ← collapsible nav (13 items, active state, tooltip when collapsed)
+│   ├── Header.tsx      ← page title + dark toggle + search/bell placeholders
+│   └── PageLayout.tsx  ← per-page wrapper: title bar + action slot + children
 ├── components/shared/
+│   ├── StatCard.tsx      ← KPI card with trend indicator
+│   ├── DataTable.tsx     ← TanStack Table wrapper (sort, global filter, pagination)
+│   ├── ConfirmDialog.tsx ← Radix Dialog for delete confirmation
+│   └── ChannelBadge.tsx  ← colored badge with auto text contrast
 ├── components/charts/
-├── pages/{dashboard,channels,products,suppliers,imports,
-│         inventory,orders/pos,pricing,expenses,customers,
-│         reports,settings}/
+├── pages/
+│   ├── dashboard/DashboardPage.tsx
+│   ├── channels/ChannelsPage.tsx
+│   ├── categories/CategoriesPage.tsx
+│   ├── suppliers/SuppliersPage.tsx
+│   ├── customers/CustomersPage.tsx
+│   ├── products/ProductsPage.tsx
+│   ├── imports/ImportsPage.tsx
+│   ├── inventory/InventoryPage.tsx
+│   ├── pricing/PricingPage.tsx
+│   ├── orders/{OrdersPage,PosPage}.tsx
+│   ├── expenses/ExpensesPage.tsx
+│   ├── reports/ReportsPage.tsx
+│   ├── settings/SettingsPage.tsx
+│   └── NotFoundPage.tsx
 ├── stores/
 ├── db/
 │   ├── schema.ts       ← SellerDatabase (Dexie), 18 tables
@@ -157,17 +178,21 @@ src/
 
 ---
 
-## Sprint 1.4 — Việc cần làm
+## Sprint 1.5 — Việc cần làm
 
-Layout & Navigation theo `PROJECT_PLAN.md Sprint 1.4`:
+Settings & Channels theo `PROJECT_PLAN.md Sprint 1.5`:
 
-- `src/components/layout/Sidebar.tsx` — Logo, menu 13 items, active state theo route
-- `src/components/layout/Header.tsx` — Tên trang, dark/light toggle, breadcrumb
-- `src/components/layout/AppLayout.tsx` — Wrapper: Sidebar + Header + `<Outlet>`
-- `src/App.tsx` — React Router 7: BrowserRouter + routes + AppLayout
-- Tạo page placeholder cho từng route (chỉ cần h1 đúng tên)
-- Cài thêm nếu thiếu: `react-router-dom`, `sonner` toast
+- Zustand store `useSettingsStore` — load/save AppSettings
+- Zustand store `useChannelStore` — CRUD SalesChannel + ChannelCategoryFee
+- Trang Settings: form AppSettings + export/import JSON + reset data
+- Trang Channels: danh sách + form thêm/sửa/xóa + tab phí theo danh mục
+
+**Ghi chú kỹ thuật:**
+- `src/constants/navItems.ts` — nav config dùng chung cho Sidebar và Header
+- `src/hooks/useTheme.ts` — dark/light toggle (persist localStorage, toggle `<html class="dark">`)
+- `src/App.tsx` — BrowserRouter + AppLayout (Outlet) + 13 routes + 404
+- Comments: English, ngắn gọn (áp dụng từ Sprint 1.4 trở đi)
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.3 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 1.4 hoàn thành — 2026-03-25*
