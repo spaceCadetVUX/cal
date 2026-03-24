@@ -82,8 +82,8 @@
 ### Phase 1 — Local MVP
 - [x] **1.1** Project Setup ✅
 - [x] **1.2** Database Layer ✅
-- [ ] **1.3** Utility Functions ← **TIẾP THEO**
-- [ ] **1.4** Layout & Navigation
+- [x] **1.3** Utility Functions ✅
+- [ ] **1.4** Layout & Navigation ← **TIẾP THEO**
 - [ ] **1.5** Settings & Channels
 - [ ] **1.6** Categories, Suppliers, Customers
 - [ ] **1.7** Products
@@ -121,7 +121,12 @@ src/
 │   └── migrations/
 ├── hooks/
 ├── utils/
-│   └── idGenerator.ts  ← generateId() = crypto.randomUUID()
+│   ├── idGenerator.ts        ← generateId() = crypto.randomUUID()
+│   ├── channelFeeResolver.ts ← resolveChannelFee(channelId, categoryId, db)
+│   ├── priceCalculator.ts    ← calcMinSellingPrice(), calcSuggestedPrice()
+│   ├── profitCalculator.ts   ← calcProfitPerUnit(), calcOrderItemProfit(), calcOrderProfit(), calcNetProfit(), calcSupplierDebt()
+│   ├── inventoryHelper.ts    ← calcAvailableQty(), isLowStock()
+│   └── formatters.ts         ← formatVND(), formatPct(), formatDate(), formatDateRange(), formatRelativeTime()
 ├── types/
 │   └── index.ts        ← 18 TypeScript interfaces
 ├── constants/
@@ -152,18 +157,17 @@ src/
 
 ---
 
-## Sprint 1.3 — Việc cần làm
+## Sprint 1.4 — Việc cần làm
 
-Tạo các utils theo đúng công thức trong `PROJECT_PLAN.md Section 6`:
+Layout & Navigation theo `PROJECT_PLAN.md Sprint 1.4`:
 
-| File | Functions cần tạo |
-|------|------------------|
-| `src/utils/channelFeeResolver.ts` | `resolveChannelFee(channelId, categoryId, db)` |
-| `src/utils/priceCalculator.ts` | `calcMinSellingPrice()`, `calcSuggestedPrice()` |
-| `src/utils/profitCalculator.ts` | `calcProfitPerUnit()`, `calcOrderItemProfit()`, `calcOrderProfit()`, `calcNetProfit()`, `calcSupplierDebt()` |
-| `src/utils/inventoryHelper.ts` | `calcAvailableQty()`, `isLowStock()` |
-| `src/utils/formatters.ts` | `formatVND()`, `formatPct()`, `formatDate()`, `formatDateRange()` |
+- `src/components/layout/Sidebar.tsx` — Logo, menu 13 items, active state theo route
+- `src/components/layout/Header.tsx` — Tên trang, dark/light toggle, breadcrumb
+- `src/components/layout/AppLayout.tsx` — Wrapper: Sidebar + Header + `<Outlet>`
+- `src/App.tsx` — React Router 7: BrowserRouter + routes + AppLayout
+- Tạo page placeholder cho từng route (chỉ cần h1 đúng tên)
+- Cài thêm nếu thiếu: `react-router-dom`, `sonner` toast
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.2 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 1.3 hoàn thành — 2026-03-25*

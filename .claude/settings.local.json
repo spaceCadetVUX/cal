@@ -4,7 +4,8 @@
       "Bash(npm --version)",
       "Read(//c/Users/vusu3/Desktop/Tool/**)",
       "Bash(pnpm create:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(pnpm tsc:*)"
     ]
   }
 }

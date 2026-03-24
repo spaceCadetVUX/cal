@@ -887,32 +887,32 @@ src/
 
 ---
 
-### Sprint 1.3 — Utility Functions
+### Sprint 1.3 — Utility Functions ✅
 > **Mục tiêu:** Toàn bộ logic tính toán viết xong, có thể test độc lập
 > `[dep: 1.2]`
 > **Done:** Mỗi function có input/output test thủ công pass
 
-- [ ] `src/utils/channelFeeResolver.ts`
+- [x] `src/utils/channelFeeResolver.ts`
   - `resolveChannelFee(channelId, categoryId)` → `{ platformFeePct, paymentFeePct }`
   - Logic: ChannelCategoryFee override > SalesChannel default
-- [ ] `src/utils/priceCalculator.ts`
+- [x] `src/utils/priceCalculator.ts`
   - `calcMinSellingPrice(costPrice, fees, packagingCost, otherCost)` → `number`
   - `calcSuggestedPrice(costPrice, fees, packagingCost, otherCost, minMarginPct)` → `number`
-- [ ] `src/utils/profitCalculator.ts`
+- [x] `src/utils/profitCalculator.ts`
   - `calcProfitPerUnit(sellingPrice, costPrice, fees, packagingCost, otherCost)` → `{ grossProfit, profitMargin }`
   - `calcOrderItemProfit(item)` → `{ grossProfit, subtotal, profitMargin }` — COMPUTED
   - `calcOrderProfit(order, items)` → `{ totalRevenue, totalCost, grossProfit, netShippingCost }`
   - `calcNetProfit(grossProfit, expenses)` → `number`
   - `calcSupplierDebt(supplierId, batches, payments)` → `number`
-- [ ] `src/utils/inventoryHelper.ts`
+- [x] `src/utils/inventoryHelper.ts`
   - `calcAvailableQty(quantity, reservedQty)` → `number` — COMPUTED
   - `isLowStock(available, lowStockAlert)` → `boolean`
-- [ ] `src/utils/formatters.ts`
+- [x] `src/utils/formatters.ts`
   - `formatVND(amount)` → `"1.250.000 ₫"`
   - `formatPct(value)` → `"12.5%"`
   - `formatDate(date)` → `"25/03/2026"`
   - `formatDateRange(from, to)` → string
-- [ ] `src/utils/idGenerator.ts` — `generateId()` → UUID v4
+- [x] `src/utils/idGenerator.ts` — `generateId()` → UUID v4
 
 ---
 
