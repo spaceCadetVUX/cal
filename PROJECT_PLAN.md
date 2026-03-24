@@ -940,29 +940,29 @@ src/
 
 ---
 
-### Sprint 1.5 — Settings & Channels
+### Sprint 1.5 — Settings & Channels ✅
 > **Mục tiêu:** Cấu hình app + quản lý kênh bán đầy đủ
 > `[dep: 1.3, 1.4]`
 > **Done:** Tạo/sửa/xóa kênh thành công, phí lưu đúng vào DB
 
-- [ ] **Trang Settings:**
+- [x] **Trang Settings:**
   - Form sửa AppSettings: tên doanh nghiệp, packagingCost mặc định, minMarginPct mặc định, lowStockAlert mặc định
   - Nút Export backup JSON (toàn bộ DB)
   - Nút Import từ file backup
   - Nút Reset toàn bộ data (có confirm dialog)
-- [ ] **Zustand store:** `useSettingsStore` — load/save AppSettings
-- [ ] **Trang Channels — danh sách:**
+- [x] **Zustand store:** `useSettingsStore` — load/save AppSettings
+- [x] **Trang Channels — danh sách:**
   - Bảng: Tên, Loại, Phí sàn, Phí TT, Trạng thái
   - Badge màu cho từng kênh
   - Nút Thêm / Sửa / Xóa / Bật-Tắt
-- [ ] **Form Thêm/Sửa kênh:**
+- [x] **Form Thêm/Sửa kênh:**
   - Các field theo model SalesChannel
   - Dropdown loại kênh → prefill phí mặc định từ `channelDefaults.ts`
   - Color picker cho badge
-- [ ] **Tab "Phí theo danh mục"** trong chi tiết kênh:
+- [x] **Tab "Phí theo danh mục"** trong chi tiết kênh:
   - Bảng danh mục × phí (editable inline)
   - Lưu vào ChannelCategoryFee
-- [ ] **Zustand store:** `useChannelStore` — CRUD SalesChannel + ChannelCategoryFee
+- [x] **Zustand store:** `useChannelStore` — CRUD SalesChannel + ChannelCategoryFee
 
 ---
 

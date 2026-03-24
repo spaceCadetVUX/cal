@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { AppLayout } from '@/components/layout/AppLayout'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
 import ChannelsPage from '@/pages/channels/ChannelsPage'
@@ -18,6 +19,7 @@ import NotFoundPage from '@/pages/NotFoundPage'
 
 function App() {
   return (
+    <>
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
@@ -41,6 +43,8 @@ function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
+    <Toaster richColors position="top-right" />
+    </>
   )
 }
 

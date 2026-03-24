@@ -84,7 +84,8 @@
 - [x] **1.2** Database Layer ✅
 - [x] **1.3** Utility Functions ✅
 - [x] **1.4** Layout & Navigation ✅
-- [ ] **1.5** Settings & Channels ← **TIẾP THEO**
+- [x] **1.5** Settings & Channels ✅
+- [ ] **1.6** Categories, Suppliers & Customers ← **TIẾP THEO**
 - [ ] **1.5** Settings & Channels
 - [ ] **1.6** Categories, Suppliers, Customers
 - [ ] **1.7** Products
@@ -178,21 +179,28 @@ src/
 
 ---
 
-## Sprint 1.5 — Việc cần làm
+## Stores đã có
 
-Settings & Channels theo `PROJECT_PLAN.md Sprint 1.5`:
+| File | Mô tả |
+|------|-------|
+| `src/stores/useSettingsStore.ts` | load/save AppSettings (Zustand) |
+| `src/stores/useChannelStore.ts` | CRUD SalesChannel + ChannelCategoryFee (Zustand) |
 
-- Zustand store `useSettingsStore` — load/save AppSettings
-- Zustand store `useChannelStore` — CRUD SalesChannel + ChannelCategoryFee
-- Trang Settings: form AppSettings + export/import JSON + reset data
-- Trang Channels: danh sách + form thêm/sửa/xóa + tab phí theo danh mục
+## Ghi chú kỹ thuật quan trọng
 
-**Ghi chú kỹ thuật:**
-- `src/constants/navItems.ts` — nav config dùng chung cho Sidebar và Header
-- `src/hooks/useTheme.ts` — dark/light toggle (persist localStorage, toggle `<html class="dark">`)
-- `src/App.tsx` — BrowserRouter + AppLayout (Outlet) + 13 routes + 404
-- Comments: English, ngắn gọn (áp dụng từ Sprint 1.4 trở đi)
+- `<Toaster richColors position="top-right" />` đặt trong `App.tsx` — dùng `toast.success/error` từ `sonner`
+- Settings: export/import JSON backup toàn bộ 18 bảng; reset clears all + re-runs `runSeedIfNeeded()`
+- Channels form: chọn type → auto prefill platformFeePct/paymentFeePct/color từ `CHANNEL_DEFAULTS`; color picker dùng `<input type="color">`
+- Category fees tab: chỉ hiện khi editing (không phải khi add mới); feePct=0 = dùng default của kênh (không lưu DB)
+- `reviveDates()` helper trong SettingsPage: convert ISO strings → Date objects khi import backup
+
+## Sprint 1.6 — Việc cần làm
+
+Categories, Suppliers, Customers theo `PROJECT_PLAN.md Sprint 1.6`:
+- CRUD Categories (validate: không xóa nếu có SP đang dùng)
+- CRUD Suppliers + tổng nhập / công nợ
+- CRUD Customers
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.4 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 1.5 hoàn thành — 2026-03-25*
