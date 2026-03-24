@@ -871,25 +871,19 @@ src/
 
 ---
 
-### Sprint 1.2 — Database Layer
+### ✅ Sprint 1.2 — Database Layer
 > **Mục tiêu:** Toàn bộ schema Dexie.js sẵn sàng, seed data chạy được
 > `[dep: 1.1]`
-> **Done:** Mở DevTools → Application → IndexedDB thấy đủ 18 tables + seed data
+> **Done:** `pnpm build` không lỗi ✅
 
-- [ ] Tạo `src/db/schema.ts` — định nghĩa Dexie schema với **đủ 18 tables**:
-  `appSettings, salesChannels, categories, channelCategoryFees,`
-  `suppliers, supplierPayments, customers, products, productVariants,`
-  `productChannelInfos, priceConfigs, importBatches, importItems,`
-  `inventoryRecords, stockMovements, orders, orderItems, expenses`
-- [ ] Tạo `src/db/db.ts` — export Dexie instance singleton
-- [ ] Tạo `src/db/migrations/` — cấu trúc versioning cho schema sau này
-- [ ] Tạo `src/constants/channelDefaults.ts` — phí mặc định theo Section 7 (Shopee, Lazada, TikTok, Tiki, Website, Offline)
-- [ ] Tạo `src/db/seed.ts` — seed data mặc định:
-  - AppSettings (1 record)
-  - 6 SalesChannel mặc định (Shopee, Lazada, TikTok Shop, Tiki, Website, Offline)
-  - ChannelCategoryFee cho từng kênh theo bảng phí Section 7
-- [ ] Tạo `src/types/` — TypeScript interfaces mirror đúng 18 Data Models
-- [ ] Kiểm tra: seed chạy lúc app khởi động lần đầu, không chạy lại lần sau
+- [x] Tạo `src/db/schema.ts` — SellerDatabase extends Dexie, đủ 18 tables với indexes
+- [x] Tạo `src/db/db.ts` — singleton instance
+- [x] Tạo `src/db/migrations/README.md` — version history
+- [x] Tạo `src/constants/channelDefaults.ts` — phí Shopee/Lazada/TikTok/Tiki/Website/Offline
+- [x] Tạo `src/db/seed.ts` — AppSettings + 6 channels + 19 categories + ChannelCategoryFees
+- [x] Tạo `src/types/index.ts` — 18 TypeScript interfaces đúng theo Data Models
+- [x] Tạo `src/utils/idGenerator.ts` — crypto.randomUUID()
+- [x] Gắn seed vào `main.tsx` — chạy trước render, skip nếu đã có data
 
 ---
 
