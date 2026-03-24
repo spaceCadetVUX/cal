@@ -15,7 +15,7 @@ import { useChannelStore } from '@/stores/useChannelStore'
 import { CHANNEL_DEFAULTS } from '@/constants/channelDefaults'
 import { formatPct } from '@/utils/formatters'
 import db from '@/db/db'
-import type { SalesChannel, ChannelType, Category } from '@/types'
+import type { SalesChannel, ChannelType } from '@/types'
 
 // --------------- Channel form schema ---------------
 
@@ -48,12 +48,12 @@ interface ChannelFormDialogProps {
   open: boolean
   onClose: () => void
   editing: SalesChannel | null
+  defaultTab?: 'info' | 'fees'
 }
 
-function ChannelFormDialog({ open, onClose, editing }: ChannelFormDialogProps) {
+function ChannelFormDialog({ open, onClose, editing, defaultTab = 'info' }: ChannelFormDialogProps) {
   const { add, update, loadCategoryFees, saveCategoryFees } = useChannelStore()
   const [tab, setTab] = useState<'info' | 'fees'>('info')
-  const [categories, setCategories] = useState<Category[]>([])
   const [feeRows, setFeeRows] = useState<FeeRow[]>([])
   const [savingFees, setSavingFees] = useState(false)
 
@@ -67,11 +67,13 @@ function ChannelFormDialog({ open, onClose, editing }: ChannelFormDialogProps) {
   } = useForm<ChannelForm>({ resolver: zodResolver(channelSchema) })
 
   const selectedType = watch('type')
+  const colorValue = watch('color')
 
-  // Reset form when dialog opens / editing changes
+  // Reset form and tab when dialog opens / editing target changes
   useEffect(() => {
     if (!open) return
-    setTab('info')
+    // Use defaultTab only when editing (fees tab requires an existing channel)
+    setTab(editing && defaultTab === 'fees' ? 'fees' : 'info')
     if (editing) {
       reset({
         name: editing.name,
@@ -99,14 +101,13 @@ function ChannelFormDialog({ open, onClose, editing }: ChannelFormDialogProps) {
     }
   }, [selectedType, editing, setValue])
 
-  // Load categories + existing fees when switching to fees tab
+  // Load existing fees when switching to fees tab
   useEffect(() => {
     if (tab !== 'fees' || !editing) return
     ;(async () => {
       const cats = await db.categories.orderBy('name').toArray()
       const existing = await loadCategoryFees(editing.id)
       const feeMap = new Map(existing.map((f) => [f.categoryId, f.feePct]))
-      setCategories(cats)
       setFeeRows(cats.map((c) => ({ categoryId: c.id, categoryName: c.name, feePct: feeMap.get(c.id) ?? 0 })))
     })()
   }, [tab, editing, loadCategoryFees])
@@ -215,11 +216,16 @@ function ChannelFormDialog({ open, onClose, editing }: ChannelFormDialogProps) {
                     <label className={labelCls}>Hỗ trợ vận chuyển mặc định (₫)</label>
                     <input {...register('defaultShippingSubsidy')} type="number" min={0} className={inputCls} />
                   </div>
-                  {/* Color */}
+                  {/* Color — color picker and text input stay in sync via watch+setValue */}
                   <div className="space-y-1">
                     <label className={labelCls}>Màu badge</label>
                     <div className="flex gap-2">
-                      <input {...register('color')} type="color" className="h-9 w-12 cursor-pointer rounded-lg border bg-background p-1" />
+                      <input
+                        type="color"
+                        value={colorValue ?? '#000000'}
+                        onChange={(e) => setValue('color', e.target.value, { shouldDirty: true })}
+                        className="h-9 w-12 cursor-pointer rounded-lg border bg-background p-1"
+                      />
                       <input {...register('color')} className={`${inputCls} flex-1`} placeholder="#EE4D2D" />
                     </div>
                   </div>
@@ -318,6 +324,7 @@ export default function ChannelsPage() {
   const { channels, loading, load, remove, toggleActive } = useChannelStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<SalesChannel | null>(null)
+  const [dialogDefaultTab, setDialogDefaultTab] = useState<'info' | 'fees'>('info')
   const [deleteTarget, setDeleteTarget] = useState<SalesChannel | null>(null)
 
   useEffect(() => {
@@ -326,11 +333,13 @@ export default function ChannelsPage() {
 
   const openAdd = () => {
     setEditing(null)
+    setDialogDefaultTab('info')
     setDialogOpen(true)
   }
 
-  const openEdit = (ch: SalesChannel) => {
+  const openEdit = (ch: SalesChannel, tab: 'info' | 'fees' = 'info') => {
     setEditing(ch)
+    setDialogDefaultTab(tab)
     setDialogOpen(true)
   }
 
@@ -388,14 +397,14 @@ export default function ChannelsPage() {
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
           <button
-            onClick={() => openEdit(row.original)}
-            title="Sửa / Phí danh mục"
+            onClick={() => openEdit(row.original, 'info')}
+            title="Sửa thông tin"
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <Pencil className="h-4 w-4" />
           </button>
           <button
-            onClick={() => { setEditing(row.original); setDialogOpen(true) }}
+            onClick={() => openEdit(row.original, 'fees')}
             title="Phí theo danh mục"
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
@@ -436,6 +445,7 @@ export default function ChannelsPage() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         editing={editing}
+        defaultTab={dialogDefaultTab}
       />
 
       <ConfirmDialog
