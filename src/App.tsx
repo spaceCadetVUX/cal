@@ -15,6 +15,8 @@ import ImportDetailPage from '@/pages/imports/ImportDetailPage'
 import InventoryPage from '@/pages/inventory/InventoryPage'
 import PricingPage from '@/pages/pricing/PricingPage'
 import OrdersPage from '@/pages/orders/OrdersPage'
+import OrderFormPage from '@/pages/orders/OrderFormPage'
+import OrderDetailPage from '@/pages/orders/OrderDetailPage'
 import PosPage from '@/pages/orders/PosPage'
 import ExpensesPage from '@/pages/expenses/ExpensesPage'
 import ReportsPage from '@/pages/reports/ReportsPage'
@@ -43,7 +45,9 @@ function App() {
           <Route path="pricing" element={<PricingPage />} />
           <Route path="orders">
             <Route index element={<OrdersPage />} />
+            <Route path="new" element={<OrderFormPage />} />
             <Route path="pos" element={<PosPage />} />
+            <Route path=":id" element={<OrderDetailPage />} />
           </Route>
           <Route path="expenses" element={<ExpensesPage />} />
           <Route path="reports" element={<ReportsPage />} />

@@ -89,8 +89,8 @@
 - [x] **1.7** Products ✅
 - [x] **1.8** Imports & Inventory ✅
 - [x] **1.9** Pricing ✅
-- [ ] **1.10** Orders + Quick POS ← **TIẾP THEO**
-- [ ] **1.11** Dashboard MVP
+- [x] **1.10** Orders + Quick POS ✅
+- [ ] **1.11** Dashboard MVP ← **TIẾP THEO**
 - [ ] **1.12** Integration & Polish
 
 ### Phase 2–4
@@ -132,7 +132,10 @@ src/
 │   ├── imports/ImportDetailPage.tsx      ← chi tiết + confirm/cancel (1.8)
 │   ├── inventory/InventoryPage.tsx       ← tổng quan + điều chỉnh + lịch sử (1.8)
 │   ├── pricing/PricingPage.tsx           ← 3 tab: danh sách/máy tính/gán giá (1.9)
-│   ├── orders/{OrdersPage,PosPage}.tsx
+│   ├── orders/OrdersPage.tsx             ← danh sách + filter kênh/trạng thái (1.10)
+│   ├── orders/OrderFormPage.tsx          ← tạo đơn + real-time profit (1.10)
+│   ├── orders/OrderDetailPage.tsx        ← chi tiết + breakdown + đổi trạng thái (1.10)
+│   ├── orders/PosPage.tsx                ← Quick POS offline (1.10)
 │   ├── expenses/ExpensesPage.tsx
 │   ├── reports/ReportsPage.tsx
 │   ├── settings/SettingsPage.tsx
@@ -209,6 +212,7 @@ src/
 | `useImportStore` | CRUD ImportBatch + ImportItems; confirmBatch (→InventoryRecord + StockMovement); cancelBatch |
 | `useInventoryStore` | load (với InventoryWithProduct join), adjust (delta + StockMovement), loadMovements |
 | `usePriceStore` | upsert PriceConfig (in-place update), getLatestCostPrice (từ received ImportBatch), getEffectiveConfig (channel > base) |
+| `useOrderStore` | CRUD Order + OrderItem; createOrder (snapshot fees, deduct inventory, StockMovement type=sale); updateStatus; deleteOrder; getOrderDetail |
 
 ## Routing đặc biệt
 
@@ -245,15 +249,26 @@ src/
 - `usePriceStore.upsert()`: update in-place nếu trùng (productId+variantId+channelId), insert mới nếu chưa có
 - `PricingPage` → `ProductDetailPage`: Giá theo kênh (table: kênh/giá bán/giá vốn/lợi nhuận/biên) + Tồn kho (table: biến thể/tổng/dự trữ/khả dụng/cảnh báo)
 
-## Sprint 1.10 — Việc cần làm tiếp
+## Ghi chú kỹ thuật Sprint 1.10
 
-Orders + Quick POS theo `PROJECT_PLAN.md Sprint 1.10`:
-- `useOrderStore` CRUD + create order (snapshot phí kênh lúc bán, costPrice từ ImportItem)
-- OrdersPage: danh sách đơn + filter
-- OrderDetailPage: info + line items + profit
-- PosPage: Quick POS cho offline
-- Sau khi hoàn thành: CustomerStats (orderCount/totalSpent) sẽ có giá trị
+- `createOrder()`: transaction tạo Order + OrderItems + trừ InventoryRecord + StockMovement(type='sale', qty=-n)
+- `OrderSummary` extends Order với computed: `totalGrossProfit`, `netProfit`, `profitMargin` (không lưu DB)
+- `netProfit` = Σ(item.grossProfit) - (sellerShippingFee - shippingSubsidy)
+- `totalRevenue` = Σ(sellingPrice×qty) - discountAmount (buyerShippingFee không tính vào revenue)
+- Status transitions: pending→confirmed→shipping→delivered; pending/confirmed→cancelled; shipping→returned
+- deleteOrder: block nếu shipping/delivered; tồn kho KHÔNG được hoàn trả (Phase 1)
+- `generateOrderCode()`: format `ORD-YYYYMMDD-XXXX` (random 4 ký tự uppercase)
+- PosPage: route riêng NGOÀI AppLayout (full-screen, không có sidebar)
+- POS auto-select kênh type='offline' đầu tiên; nút quick-cash làm tròn đến 10k/50k/100k
+
+## Sprint 1.11 — Việc cần làm tiếp
+
+Dashboard MVP theo `PROJECT_PLAN.md Sprint 1.11`:
+- CustomerStats (orderCount/totalSpent) sẽ có giá trị sau 1.10
+- KPI hôm nay: Doanh thu, Lợi nhuận, Số đơn, Margin TB
+- Bộ lọc kênh
+- Biểu đồ doanh thu + lợi nhuận theo thời gian
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.8 + 1.9 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 1.10 hoàn thành — 2026-03-25*
