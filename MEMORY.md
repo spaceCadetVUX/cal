@@ -86,13 +86,10 @@
 - [x] **1.4** Layout & Navigation ✅
 - [x] **1.5** Settings & Channels ✅
 - [x] **1.6** Categories, Suppliers & Customers ✅
-- [ ] **1.7** Products ← **TIẾP THEO**
-- [ ] **1.5** Settings & Channels
-- [ ] **1.6** Categories, Suppliers, Customers
-- [ ] **1.7** Products
-- [ ] **1.8** Imports & Inventory
-- [ ] **1.9** Pricing
-- [ ] **1.10** Orders + Quick POS
+- [x] **1.7** Products ✅
+- [x] **1.8** Imports & Inventory ✅
+- [x] **1.9** Pricing ✅
+- [ ] **1.10** Orders + Quick POS ← **TIẾP THEO**
 - [ ] **1.11** Dashboard MVP
 - [ ] **1.12** Integration & Polish
 
@@ -127,10 +124,14 @@ src/
 │   ├── categories/CategoriesPage.tsx
 │   ├── suppliers/SuppliersPage.tsx
 │   ├── customers/CustomersPage.tsx
-│   ├── products/ProductsPage.tsx
-│   ├── imports/ImportsPage.tsx
-│   ├── inventory/InventoryPage.tsx
-│   ├── pricing/PricingPage.tsx
+│   ├── products/ProductsPage.tsx         ← danh sách + filter (1.7)
+│   ├── products/ProductFormDialog.tsx    ← form 3 tab: Info/Variants/Channels (1.7)
+│   ├── products/ProductDetailPage.tsx    ← chi tiết SP (1.7)
+│   ├── imports/ImportsPage.tsx           ← danh sách + filter (1.8)
+│   ├── imports/ImportFormPage.tsx        ← tạo/sửa phiếu nhập (1.8)
+│   ├── imports/ImportDetailPage.tsx      ← chi tiết + confirm/cancel (1.8)
+│   ├── inventory/InventoryPage.tsx       ← tổng quan + điều chỉnh + lịch sử (1.8)
+│   ├── pricing/PricingPage.tsx           ← 3 tab: danh sách/máy tính/gán giá (1.9)
 │   ├── orders/{OrdersPage,PosPage}.tsx
 │   ├── expenses/ExpensesPage.tsx
 │   ├── reports/ReportsPage.tsx
@@ -204,11 +205,19 @@ src/
 | `useCategoryStore` | CRUD Category, validate delete (block nếu có SP dùng) |
 | `useSupplierStore` | CRUD Supplier + stats (productCount/debt) + addPayment/deletePayment |
 | `useCustomerStore` | CRUD Customer + stats (orderCount/totalSpent, 0 đến Sprint 1.10) |
+| `useProductStore` | CRUD Product + ProductVariant + ProductChannelInfo; stats: totalQty + listedChannelIds |
+| `useImportStore` | CRUD ImportBatch + ImportItems; confirmBatch (→InventoryRecord + StockMovement); cancelBatch |
+| `useInventoryStore` | load (với InventoryWithProduct join), adjust (delta + StockMovement), loadMovements |
+| `usePriceStore` | upsert PriceConfig (in-place update), getLatestCostPrice (từ received ImportBatch), getEffectiveConfig (channel > base) |
 
 ## Routing đặc biệt
 
 - `/suppliers/:id` → `SupplierDetailPage` (debt stats + payment history + add payment)
 - `SupplierFormDialog` tách riêng file (`suppliers/SupplierFormDialog.tsx`) — dùng chung bởi cả list và detail page
+- `/products/:id` → `ProductDetailPage` (info + variants + channels + tồn kho thực + giá thực)
+- `ProductFormDialog` tách riêng file (`products/ProductFormDialog.tsx`) — dùng bởi list và detail page
+- `/imports/new` + `/imports/:id/edit` → `ImportFormPage` (React Hook Form header + useState LineItemDraft[])
+- `/imports/:id` → `ImportDetailPage` (info + StatCards + line items + confirm/cancel dialogs)
 
 ## Ghi chú kỹ thuật
 
@@ -218,15 +227,33 @@ src/
 - SupplierDetailPage: resolve supplier từ store trước (fast), fallback về DB query nếu navigate thẳng
 - CustomerStats (orderCount/totalSpent) được load từ DB lúc `load()` — sẽ tự có giá trị sau Sprint 1.10
 - TypeBadge customer: retail=gray, wholesale=blue, vip=yellow
+- Product delete: block nếu có ImportItems hoặc OrderItems; cascade xóa Variants/ChannelInfos/InventoryRecords/StockMovements/PriceConfigs
+- Product SKU: unique index (`&sku`) → Dexie ném ConstraintError nếu trùng → bắt trong catch của form
+- `generateProductSku()`: format `SP-YYYYMMDD-XXXX` (random 4 ký tự uppercase)
+- ProductFormDialog 3 tab: Tab nav cuối form bằng nút "← Trước / Tiếp →"; submit button luôn visible
+- Ảnh sản phẩm: lưu base64 trong IndexedDB (Phase 1); sẽ migrate sang Supabase Storage ở Phase 3
+- ProductsPage: filter ngoài DataTable (useMemo) cho category/channel/status; DataTable globalFilter cho search text
+- ProductDetail: `getDetail(id)` load variants + channelInfos từ DB song song; product resolve từ store hoặc DB
 
-## Sprint 1.7 — Việc cần làm
+## Ghi chú kỹ thuật Sprint 1.8 + 1.9
 
-Products theo `PROJECT_PLAN.md Sprint 1.7`:
-- Danh sách SP + search/filter theo danh mục/kênh/status
-- Form 3 tab: Thông tin | Biến thể | Kênh bán
-- Chi tiết SP (placeholder cho giá/tồn kho/lịch sử)
-- `useProductStore`
+- `confirmBatch()`: pending→received; upsert InventoryRecord dùng `.where('productId').equals(id).filter(r => r.variantId === item.variantId)` để tránh compound index null caveat
+- `ImportFormPage`: pre-load catalog vào `Map<productId, {product, variants}>` lúc mount; LineItemDraft dùng useState
+- `generateBatchCode()`: format `IMP-YYYYMMDD-XXXX`
+- `InventoryPage` 2 tab: tổng quan (DataTable + AdjustDialog per row) + lịch sử biến động (MovementWithProduct)
+- `PricingPage` 3 tab: danh sách (dedup by productId+variantId+channelId, show margin với AlertTriangle) / máy tính (auto-fill fees via resolveChannelFee) / gán giá (form + live preview, upsert in-place)
+- `usePriceStore.upsert()`: update in-place nếu trùng (productId+variantId+channelId), insert mới nếu chưa có
+- `PricingPage` → `ProductDetailPage`: Giá theo kênh (table: kênh/giá bán/giá vốn/lợi nhuận/biên) + Tồn kho (table: biến thể/tổng/dự trữ/khả dụng/cảnh báo)
+
+## Sprint 1.10 — Việc cần làm tiếp
+
+Orders + Quick POS theo `PROJECT_PLAN.md Sprint 1.10`:
+- `useOrderStore` CRUD + create order (snapshot phí kênh lúc bán, costPrice từ ImportItem)
+- OrdersPage: danh sách đơn + filter
+- OrderDetailPage: info + line items + profit
+- PosPage: Quick POS cho offline
+- Sau khi hoàn thành: CustomerStats (orderCount/totalSpent) sẽ có giá trị
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.6 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 1.8 + 1.9 hoàn thành — 2026-03-25*

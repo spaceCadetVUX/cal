@@ -8,7 +8,10 @@ import SuppliersPage from '@/pages/suppliers/SuppliersPage'
 import SupplierDetailPage from '@/pages/suppliers/SupplierDetailPage'
 import CustomersPage from '@/pages/customers/CustomersPage'
 import ProductsPage from '@/pages/products/ProductsPage'
+import ProductDetailPage from '@/pages/products/ProductDetailPage'
 import ImportsPage from '@/pages/imports/ImportsPage'
+import ImportFormPage from '@/pages/imports/ImportFormPage'
+import ImportDetailPage from '@/pages/imports/ImportDetailPage'
 import InventoryPage from '@/pages/inventory/InventoryPage'
 import PricingPage from '@/pages/pricing/PricingPage'
 import OrdersPage from '@/pages/orders/OrdersPage'
@@ -31,7 +34,11 @@ function App() {
           <Route path="suppliers/:id" element={<SupplierDetailPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="products/:id" element={<ProductDetailPage />} />
           <Route path="imports" element={<ImportsPage />} />
+          <Route path="imports/new" element={<ImportFormPage />} />
+          <Route path="imports/:id" element={<ImportDetailPage />} />
+          <Route path="imports/:id/edit" element={<ImportFormPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="pricing" element={<PricingPage />} />
           <Route path="orders">
