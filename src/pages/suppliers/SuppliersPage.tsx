@@ -45,7 +45,7 @@ export default function SuppliersPage() {
     {
       header: 'Số điện thoại',
       accessorKey: 'phone',
-      cell: ({ getValue }) => <span className="text-muted-foreground">{String(getValue())}</span>,
+      cell: ({ getValue }) => <span className="text-muted-foreground">{String(getValue() ?? '—')}</span>,
     },
     {
       id: 'productCount',
