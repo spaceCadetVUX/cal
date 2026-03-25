@@ -966,28 +966,28 @@ src/
 
 ---
 
-### Sprint 1.6 — Categories, Suppliers & Customers
+### Sprint 1.6 — Categories, Suppliers & Customers ✅
 > **Mục tiêu:** Master data cơ bản sẵn sàng để dùng trong các module sau
 > `[dep: 1.4]`
 > **Done:** CRUD 3 module hoạt động, validate form đúng
 
-- [ ] **Trang Categories:**
+- [x] **Trang Categories:**
   - Danh sách + Thêm/Sửa/Xóa danh mục
   - Validate: không xóa nếu có sản phẩm đang dùng
-- [ ] **Trang Suppliers — danh sách:**
+- [x] **Trang Suppliers — danh sách:**
   - Bảng: Tên, SĐT, Số SP, Tổng nhập, Công nợ
   - Tìm kiếm theo tên / SĐT
-- [ ] **Form Thêm/Sửa NCC:** đầy đủ fields theo model Supplier
-- [ ] **Trang Chi tiết NCC:**
+- [x] **Form Thêm/Sửa NCC:** đầy đủ fields theo model Supplier
+- [x] **Trang Chi tiết NCC:**
   - Thông tin + lịch sử nhập hàng (hiện tại placeholder, đổ data ở Sprint 1.8)
   - Công nợ: tổng nhập / đã trả / còn nợ (tính từ `calcSupplierDebt`)
   - Danh sách SupplierPayment
   - Form "Ghi nhận thanh toán" → tạo SupplierPayment
-- [ ] **Trang Customers — danh sách:**
+- [x] **Trang Customers — danh sách:**
   - Bảng: Tên, SĐT, Loại, Tổng đơn, Tổng chi tiêu
   - Lọc theo loại (retail/wholesale/vip)
-- [ ] **Form Thêm/Sửa Customer:** đầy đủ fields
-- [ ] **Zustand stores:** `useSupplierStore`, `useCustomerStore`
+- [x] **Form Thêm/Sửa Customer:** đầy đủ fields
+- [x] **Zustand stores:** `useSupplierStore`, `useCustomerStore`
 
 ---
 

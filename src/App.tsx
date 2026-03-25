@@ -5,6 +5,7 @@ import DashboardPage from '@/pages/dashboard/DashboardPage'
 import ChannelsPage from '@/pages/channels/ChannelsPage'
 import CategoriesPage from '@/pages/categories/CategoriesPage'
 import SuppliersPage from '@/pages/suppliers/SuppliersPage'
+import SupplierDetailPage from '@/pages/suppliers/SupplierDetailPage'
 import CustomersPage from '@/pages/customers/CustomersPage'
 import ProductsPage from '@/pages/products/ProductsPage'
 import ImportsPage from '@/pages/imports/ImportsPage'
@@ -27,6 +28,7 @@ function App() {
           <Route path="channels" element={<ChannelsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="suppliers" element={<SuppliersPage />} />
+          <Route path="suppliers/:id" element={<SupplierDetailPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="imports" element={<ImportsPage />} />

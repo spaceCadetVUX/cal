@@ -85,7 +85,8 @@
 - [x] **1.3** Utility Functions ✅
 - [x] **1.4** Layout & Navigation ✅
 - [x] **1.5** Settings & Channels ✅
-- [ ] **1.6** Categories, Suppliers & Customers ← **TIẾP THEO**
+- [x] **1.6** Categories, Suppliers & Customers ✅
+- [ ] **1.7** Products ← **TIẾP THEO**
 - [ ] **1.5** Settings & Channels
 - [ ] **1.6** Categories, Suppliers, Customers
 - [ ] **1.7** Products
@@ -194,13 +195,38 @@ src/
 - Category fees tab: chỉ hiện khi editing (không phải khi add mới); feePct=0 = dùng default của kênh (không lưu DB)
 - `reviveDates()` helper trong SettingsPage: convert ISO strings → Date objects khi import backup
 
-## Sprint 1.6 — Việc cần làm
+## Stores đã có
 
-Categories, Suppliers, Customers theo `PROJECT_PLAN.md Sprint 1.6`:
-- CRUD Categories (validate: không xóa nếu có SP đang dùng)
-- CRUD Suppliers + tổng nhập / công nợ
-- CRUD Customers
+| Store | Chức năng |
+|-------|-----------|
+| `useSettingsStore` | load/save AppSettings |
+| `useChannelStore` | CRUD SalesChannel + ChannelCategoryFee |
+| `useCategoryStore` | CRUD Category, validate delete (block nếu có SP dùng) |
+| `useSupplierStore` | CRUD Supplier + stats (productCount/debt) + addPayment/deletePayment |
+| `useCustomerStore` | CRUD Customer + stats (orderCount/totalSpent, 0 đến Sprint 1.10) |
+
+## Routing đặc biệt
+
+- `/suppliers/:id` → `SupplierDetailPage` (debt stats + payment history + add payment)
+- `SupplierFormDialog` tách riêng file (`suppliers/SupplierFormDialog.tsx`) — dùng chung bởi cả list và detail page
+
+## Ghi chú kỹ thuật
+
+- Categories delete: trả về error string nếu bị block, null nếu ok → toast error tương ứng
+- Supplier delete: cascade xóa SupplierPayment trong transaction
+- Payment date: HTML `<input type="date">` → parse `YYYY-MM-DD` → `new Date(y, m-1, d)` để tránh UTC offset
+- SupplierDetailPage: resolve supplier từ store trước (fast), fallback về DB query nếu navigate thẳng
+- CustomerStats (orderCount/totalSpent) được load từ DB lúc `load()` — sẽ tự có giá trị sau Sprint 1.10
+- TypeBadge customer: retail=gray, wholesale=blue, vip=yellow
+
+## Sprint 1.7 — Việc cần làm
+
+Products theo `PROJECT_PLAN.md Sprint 1.7`:
+- Danh sách SP + search/filter theo danh mục/kênh/status
+- Form 3 tab: Thông tin | Biến thể | Kênh bán
+- Chi tiết SP (placeholder cho giá/tồn kho/lịch sử)
+- `useProductStore`
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.5 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 1.6 hoàn thành — 2026-03-25*
