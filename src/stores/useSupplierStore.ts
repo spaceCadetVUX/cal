@@ -82,10 +82,37 @@ export const useSupplierStore = create<SupplierStore>((set) => ({
   addPayment: async (data) => {
     const payment: SupplierPayment = { id: generateId(), ...data, createdAt: new Date() }
     await db.supplierPayments.add(payment)
+    // Update in-memory stats so SuppliersPage reflects the new payment without full reload
+    set((s) => {
+      const prev = s.stats[data.supplierId]
+      if (!prev) return s
+      const totalPaid = prev.totalPaid + data.amount
+      return {
+        stats: {
+          ...s.stats,
+          [data.supplierId]: { ...prev, totalPaid, debt: prev.totalImported - totalPaid },
+        },
+      }
+    })
     return payment
   },
 
   deletePayment: async (id) => {
+    // Look up payment first to get amount + supplierId for stats update
+    const payment = await db.supplierPayments.get(id)
     await db.supplierPayments.delete(id)
+    if (payment) {
+      set((s) => {
+        const prev = s.stats[payment.supplierId]
+        if (!prev) return s
+        const totalPaid = prev.totalPaid - payment.amount
+        return {
+          stats: {
+            ...s.stats,
+            [payment.supplierId]: { ...prev, totalPaid, debt: prev.totalImported - totalPaid },
+          },
+        }
+      })
+    }
   },
 }))

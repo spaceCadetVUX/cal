@@ -90,11 +90,11 @@
 - [x] **1.8** Imports & Inventory ✅
 - [x] **1.9** Pricing ✅
 - [x] **1.10** Orders + Quick POS ✅
-- [ ] **1.11** Dashboard MVP ← **TIẾP THEO**
-- [ ] **1.12** Integration & Polish
+- [x] **1.11** Dashboard MVP ✅
+- [x] **1.12** Integration & Polish ✅
 
 ### Phase 2–4
-- [ ] Phase 2: Báo cáo, Advanced Pricing, Import CSV, UX Polish (6 sprints)
+- [ ] Phase 2: Báo cáo, Advanced Pricing, Import CSV, UX Polish (6 sprints) ← **TIẾP THEO**
 - [ ] Phase 3: Supabase Auth + Sync + RBAC (3 sprints)
 - [ ] Phase 4: PWA + Mobile (2 sprints)
 
@@ -261,14 +261,39 @@ src/
 - PosPage: route riêng NGOÀI AppLayout (full-screen, không có sidebar)
 - POS auto-select kênh type='offline' đầu tiên; nút quick-cash làm tròn đến 10k/50k/100k
 
-## Sprint 1.11 — Việc cần làm tiếp
+## Ghi chú kỹ thuật Sprint 1.11
 
-Dashboard MVP theo `PROJECT_PLAN.md Sprint 1.11`:
-- CustomerStats (orderCount/totalSpent) sẽ có giá trị sau 1.10
-- KPI hôm nay: Doanh thu, Lợi nhuận, Số đơn, Margin TB
-- Bộ lọc kênh
-- Biểu đồ doanh thu + lợi nhuận theo thời gian
+- `DashboardPage`: load 5 stores + `db.orderItems.toArray()` lúc mount (cho top products)
+- `filteredOrders`: loại bỏ cancelled + lọc theo selectedChannelId
+- `chartData30`: 30 vòng lặp daily buckets — dùng `useMemo([filteredOrders])`
+- Donut chart: chỉ hiện khi "Tất cả kênh" (selectedChannelId = ''); dùng `ch.color` trực tiếp
+- `ChartTooltip`: custom component để format số thành VND
+- `fmtAxis()`: rút gọn Y-axis tick (1.5M / 500K)
+- Alert panel: chỉ render khi `totalAlerts > 0`; 3 loại: giá < sàn / hết hàng / đơn pending
+- Recharts: `ComposedChart` (Bar=revenue + Line=profit) + `PieChart` (innerRadius=60 = donut)
+
+## Ghi chú kỹ thuật Sprint 1.12
+
+- **Flow checks** (tất cả đúng):
+  - `confirmBatch` → `InventoryRecord` upsert + `StockMovement(type='import')` ✅
+  - `createOrder` → `InventoryRecord` deduction + `StockMovement(type='sale', qty=-n)` ✅
+  - `getLatestCostPrice` → từ received ImportBatches, sort by importDate desc ✅
+  - Debt = `Σ(received ImportBatch.totalAmount)` - `Σ(SupplierPayment.amount)` ✅
+  - Computed fields không lưu DB (grossProfit lưu là intentional snapshot) ✅
+- **useSupplierStore**: `addPayment`/`deletePayment` giờ cập nhật `stats` in-memory
+- **SupplierDetailPage**: Lịch sử nhập hàng đã điền dữ liệu thực (tất cả batches của NCC, link đến detail)
+- Toast notifications có ở mọi page với CRUD actions
+- Loading states: `undefined` = loading, `null` = not found pattern dùng nhất quán ở detail pages
+- `pnpm tsc --noEmit` passed — không có TypeScript errors
+
+## Việc cần làm tiếp — Phase 2
+
+**Sprint 2.1** — Expenses & Net Profit:
+- Trang Expenses + form thêm/sửa chi phí
+- useExpenseStore (CRUD + stats)
+- Recurring expense logic
+- Dashboard thêm thẻ KPI net profit
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.10 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 1.12 hoàn thành — 2026-03-25*

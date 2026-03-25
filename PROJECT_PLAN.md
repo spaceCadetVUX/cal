@@ -1106,7 +1106,7 @@ src/
 
 ---
 
-### Sprint 1.11 — Dashboard MVP
+### Sprint 1.11 — Dashboard MVP ✅
 > **Mục tiêu:** Dashboard có đủ dữ liệu thực từ các module đã build
 > `[dep: 1.10]` (cần đủ data flow)
 > **Done:** Dashboard hiển thị đúng số liệu, không hardcode
@@ -1132,16 +1132,16 @@ src/
 > `[dep: 1.11]`
 > **Done:** Flow hoàn chỉnh: nhập hàng → giá → bán → dashboard cập nhật đúng
 
-- [ ] Kiểm tra flow: Nhập hàng → tồn kho tăng đúng
-- [ ] Kiểm tra flow: Tạo đơn → tồn kho giảm đúng, StockMovement ghi đúng
-- [ ] Kiểm tra flow: Giá vốn từ ImportItem mới nhất được resolve đúng ở mọi nơi
-- [ ] Kiểm tra: Công nợ NCC tính đúng (ImportBatch.totalAmount - SupplierPayments)
-- [ ] Kiểm tra: computed fields không bao giờ lưu vào DB
-- [ ] Điền đủ thông tin vào các trang chi tiết (SP, NCC, khách hàng) đang để placeholder
-- [ ] Kiểm tra validate form: required fields, số âm, SKU trùng
-- [ ] Thêm loading states + error states cho mọi thao tác DB
-- [ ] Thêm toast notifications (Sonner) cho mọi action thành công / thất bại
-- [ ] Kiểm tra responsive trên màn hình 1280px / 1440px / 1920px
+- [x] Kiểm tra flow: Nhập hàng → tồn kho tăng đúng
+- [x] Kiểm tra flow: Tạo đơn → tồn kho giảm đúng, StockMovement ghi đúng
+- [x] Kiểm tra flow: Giá vốn từ ImportItem mới nhất được resolve đúng ở mọi nơi
+- [x] Kiểm tra: Công nợ NCC tính đúng (ImportBatch.totalAmount - SupplierPayments)
+- [x] Kiểm tra: computed fields không bao giờ lưu vào DB
+- [x] Điền đủ thông tin vào các trang chi tiết (SP, NCC, khách hàng) đang để placeholder
+- [x] Kiểm tra validate form: required fields, số âm, SKU trùng
+- [x] Thêm loading states + error states cho mọi thao tác DB
+- [x] Thêm toast notifications (Sonner) cho mọi action thành công / thất bại
+- [x] Kiểm tra responsive trên màn hình 1280px / 1440px / 1920px
 
 ---
 

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import * as Dialog from '@radix-ui/react-dialog'
-import { ArrowLeft, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Eye, Pencil, Plus, Trash2, X } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { StatCard } from '@/components/shared/StatCard'
@@ -15,7 +15,7 @@ import { SupplierFormDialog } from './SupplierFormDialog'
 import { useSupplierStore } from '@/stores/useSupplierStore'
 import { formatVND, formatDate } from '@/utils/formatters'
 import db from '@/db/db'
-import type { Supplier, SupplierPayment, SupplierPaymentMethod } from '@/types'
+import type { ImportBatch, ImportBatchStatus, Supplier, SupplierPayment, SupplierPaymentMethod } from '@/types'
 
 // --------------- Constants ---------------
 
@@ -23,6 +23,12 @@ const PAYMENT_METHOD_LABELS: Record<SupplierPaymentMethod, string> = {
   cash: 'Tiền mặt',
   bank_transfer: 'Chuyển khoản',
   other: 'Khác',
+}
+
+const BATCH_STATUS: Record<ImportBatchStatus, { label: string; cls: string }> = {
+  pending:   { label: 'Chờ nhận',  cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  received:  { label: 'Đã nhận',   cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  cancelled: { label: 'Đã hủy',    cls: 'bg-muted text-muted-foreground' },
 }
 
 // --------------- Payment form schema ---------------
@@ -164,6 +170,7 @@ export default function SupplierDetailPage() {
   const [supplier, setSupplier] = useState<Supplier | null | undefined>(undefined) // undefined = loading
   const [debtStats, setDebtStats] = useState<DebtStats>({ totalImported: 0, totalPaid: 0, debt: 0 })
   const [payments, setPayments] = useState<SupplierPayment[]>([])
+  const [importBatches, setImportBatches] = useState<ImportBatch[]>([])
   const [editOpen, setEditOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [deletePaymentTarget, setDeletePaymentTarget] = useState<SupplierPayment | null>(null)
@@ -179,18 +186,22 @@ export default function SupplierDetailPage() {
     }
   }, [id, suppliers])
 
-  // Load debt stats + payments for this supplier
+  // Load debt stats, payments, and import batches for this supplier
   const loadDetail = async () => {
     if (!id) return
-    const [batches, pmts] = await Promise.all([
-      db.importBatches.where('supplierId').equals(id).filter((b) => b.status === 'received').toArray(),
+    const [allBatches, pmts] = await Promise.all([
+      db.importBatches.where('supplierId').equals(id).toArray(),
       db.supplierPayments.where('supplierId').equals(id).toArray(),
     ])
-    const totalImported = batches.reduce((sum, b) => sum + b.totalAmount, 0)
+    // Debt is based on received batches only
+    const receivedBatches = allBatches.filter((b) => b.status === 'received')
+    const totalImported = receivedBatches.reduce((sum, b) => sum + b.totalAmount, 0)
     const totalPaid = pmts.reduce((sum, p) => sum + p.amount, 0)
     setDebtStats({ totalImported, totalPaid, debt: totalImported - totalPaid })
     // Sort payments newest first
     setPayments(pmts.sort((a, b) => b.paymentDate.getTime() - a.paymentDate.getTime()))
+    // Sort batches newest first
+    setImportBatches(allBatches.sort((a, b) => b.importDate.getTime() - a.importDate.getTime()))
   }
 
   useEffect(() => { loadDetail() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -348,10 +359,56 @@ export default function SupplierDetailPage() {
           )}
         </div>
 
-        {/* Import history placeholder */}
-        <div className="rounded-xl border bg-card p-5">
-          <h3 className="mb-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Lịch sử nhập hàng</h3>
-          <p className="text-sm text-muted-foreground">Sẽ hiển thị dữ liệu sau khi hoàn thành Sprint 1.8.</p>
+        {/* Import batch history */}
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Lịch sử nhập hàng</h3>
+          {importBatches.length === 0 ? (
+            <p className="rounded-xl border bg-card py-8 text-center text-sm text-muted-foreground">
+              Chưa có phiếu nhập nào
+            </p>
+          ) : (
+            <div className="rounded-xl border bg-card overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Mã lô</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ngày nhập</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Số HĐ</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Tổng tiền</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Trạng thái</th>
+                    <th className="px-4 py-3 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {importBatches.map((b) => {
+                    const st = BATCH_STATUS[b.status]
+                    return (
+                      <tr key={b.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 font-mono text-xs font-medium">{b.batchCode}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(b.importDate)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{b.invoiceNumber || '—'}</td>
+                        <td className="px-4 py-3 text-right tabular-nums font-medium">{formatVND(b.totalAmount)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${st.cls}`}>
+                            {st.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => navigate(`/imports/${b.id}`)}
+                            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+                            title="Xem chi tiết"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
