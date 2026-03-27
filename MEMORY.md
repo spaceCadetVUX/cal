@@ -94,7 +94,7 @@
 - [x] **1.12** Integration & Polish ✅
 
 ### Phase 2–4
-- [ ] Phase 2: Báo cáo, Advanced Pricing, Import CSV, UX Polish (6 sprints) ← **TIẾP THEO**
+- [ ] Phase 2: Báo cáo, Advanced Pricing, Import CSV, UX Polish (6 sprints) — **Sprint 2.1 ✅**
 - [ ] Phase 3: Supabase Auth + Sync + RBAC (3 sprints)
 - [ ] Phase 4: PWA + Mobile (2 sprints)
 
@@ -213,6 +213,7 @@ src/
 | `useInventoryStore` | load (với InventoryWithProduct join), adjust (delta + StockMovement), loadMovements |
 | `usePriceStore` | upsert PriceConfig (in-place update), getLatestCostPrice (từ received ImportBatch), getEffectiveConfig (channel > base) |
 | `useOrderStore` | CRUD Order + OrderItem; createOrder (snapshot fees, deduct inventory, StockMovement type=sale); updateStatus; deleteOrder; getOrderDetail |
+| `useExpenseStore` | CRUD Expense; generateRecurring() (monthly/quarterly/yearly auto-copy); load() tự gọi generateRecurring |
 
 ## Routing đặc biệt
 
@@ -286,14 +287,25 @@ src/
 - Loading states: `undefined` = loading, `null` = not found pattern dùng nhất quán ở detail pages
 - `pnpm tsc --noEmit` passed — không có TypeScript errors
 
+## Ghi chú kỹ thuật Sprint 2.1
+
+- `useExpenseStore`: CRUD + `generateRecurring()` — tự tạo bản sao recurring mỗi tháng
+- `generateRecurring()`: chạy tự động sau `load()`; check interval (monthly/quarterly/yearly); dùng key `name||category||channelId` để tránh duplicate
+- `ExpensesPage`: filter tháng (input type=month), category, channel; stats 4 cards; breakdown by category; DataTable + form dialog
+- Form dialog: `isRecurring` checkbox → toggle hiện `recurringInterval` select
+- `DashboardPage` "Tháng này": mở rộng từ 4 → 6 KPI cards (thêm Chi phí + Lợi nhuận ròng)
+- `monthNetProfitAfterExpenses` = `monthProfit` (từ orders) - `monthExpenses` (từ expenses tháng)
+- Expense filter trên Dashboard: lọc theo kênh + chi phí chung (không gắn kênh) cùng lúc
+- `pnpm tsc --noEmit` passed ✅
+
 ## Việc cần làm tiếp — Phase 2
 
-**Sprint 2.1** — Expenses & Net Profit:
-- Trang Expenses + form thêm/sửa chi phí
-- useExpenseStore (CRUD + stats)
-- Recurring expense logic
-- Dashboard thêm thẻ KPI net profit
+**Sprint 2.2** — Reports (Doanh thu & Lợi nhuận):
+- Báo cáo 10.1 Doanh thu (line chart + so sánh cùng kỳ)
+- Báo cáo 10.2 Lợi nhuận (gross + net, bar chart theo kênh)
+- Báo cáo 10.3 Kênh bán (bảng so sánh + phí sàn)
+- Báo cáo 10.9 Break-even
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.12 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 2.1 hoàn thành — 2026-03-27*

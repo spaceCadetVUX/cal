@@ -78,7 +78,7 @@ export default function PosPage() {
     catalogLoaded.current = true
     ;(async () => {
       const [products, variants] = await Promise.all([
-        db.products.where('isActive').equals(1).toArray(),
+        db.products.filter((p) => p.isActive).toArray(),
         db.productVariants.toArray(),
       ])
       const entries: CatalogEntry[] = products.map((p) => ({

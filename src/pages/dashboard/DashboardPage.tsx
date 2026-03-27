@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   Clock,
   BarChart2,
+  Receipt,
 } from 'lucide-react'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { StatCard } from '@/components/shared/StatCard'
@@ -31,6 +32,7 @@ import { useInventoryStore } from '@/stores/useInventoryStore'
 import { useChannelStore } from '@/stores/useChannelStore'
 import { useProductStore } from '@/stores/useProductStore'
 import { usePriceStore } from '@/stores/usePriceStore'
+import { useExpenseStore } from '@/stores/useExpenseStore'
 import { formatVND, formatPct, formatDate } from '@/utils/formatters'
 import db from '@/db/db'
 import type { OrderItem } from '@/types'
@@ -136,6 +138,7 @@ export default function DashboardPage() {
   const { channels, load: loadChannels } = useChannelStore()
   const { products, load: loadProducts } = useProductStore()
   const { configs: priceConfigs, load: loadPrices } = usePriceStore()
+  const { expenses, load: loadExpenses } = useExpenseStore()
 
   const [selectedChannelId, setSelectedChannelId] = useState('')
   const [allOrderItems, setAllOrderItems] = useState<OrderItem[]>([])
@@ -146,6 +149,7 @@ export default function DashboardPage() {
     loadChannels()
     loadProducts()
     loadPrices()
+    loadExpenses()
     db.orderItems.toArray().then(setAllOrderItems)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -196,6 +200,40 @@ export default function DashboardPage() {
   const monthMargin = avgMargin(thisMonthOrders)
   const lastMonthRevenue = sumRevenue(lastMonthOrders)
   const lastMonthProfit = sumProfit(lastMonthOrders)
+
+  // ---- Expenses tháng này (lọc theo kênh nếu đang filter) ----
+  const monthExpenses = useMemo(() => {
+    return expenses
+      .filter((e) => {
+        const d = toDate(e.date)
+        if (!inYearMonth(d, thisY, thisM)) return false
+        // Nếu đang lọc kênh: tính chi phí của kênh đó + chi phí chung (không kênh)
+        if (selectedChannelId) {
+          return !e.channelId || e.channelId === selectedChannelId
+        }
+        return true
+      })
+      .reduce((s, e) => s + e.amount, 0)
+  }, [expenses, thisY, thisM, selectedChannelId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Lợi nhuận ròng sau chi phí = lợi nhuận gộp đơn hàng - chi phí vận hành tháng
+  const monthNetProfitAfterExpenses = monthProfit - monthExpenses
+
+  // Cùng tính cho tháng trước để so sánh trend
+  const lastMonthExpenses = useMemo(() => {
+    return expenses
+      .filter((e) => {
+        const d = toDate(e.date)
+        if (!inYearMonth(d, lastY, lastM)) return false
+        if (selectedChannelId) {
+          return !e.channelId || e.channelId === selectedChannelId
+        }
+        return true
+      })
+      .reduce((s, e) => s + e.amount, 0)
+  }, [expenses, lastY, lastM, selectedChannelId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const lastMonthNetProfitAfterExpenses = lastMonthProfit - lastMonthExpenses
 
   // ---- 30-day chart data ----
   const chartData30 = useMemo(() => {
@@ -352,20 +390,42 @@ export default function DashboardPage() {
         <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           Tháng này
         </h2>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard
             title="Doanh thu"
             value={formatVND(monthRevenue)}
             icon={DollarSign}
             trend={{ value: trend(monthRevenue, lastMonthRevenue), label: 'so tháng trước' }}
-            subtitle="so tháng trước"
           />
           <StatCard
-            title="Lợi nhuận"
+            title="Lợi nhuận gộp"
             value={formatVND(monthProfit)}
             icon={TrendingUp}
             trend={{ value: trend(monthProfit, lastMonthProfit), label: 'so tháng trước' }}
             variant={monthProfit > 0 ? 'success' : monthProfit < 0 ? 'danger' : 'default'}
+          />
+          <StatCard
+            title="Chi phí"
+            value={formatVND(monthExpenses)}
+            icon={Receipt}
+            trend={{ value: trend(monthExpenses, lastMonthExpenses), label: 'so tháng trước' }}
+            variant={monthExpenses > 0 ? 'danger' : 'default'}
+          />
+          <StatCard
+            title="Lợi nhuận ròng"
+            value={formatVND(monthNetProfitAfterExpenses)}
+            icon={TrendingUp}
+            trend={{
+              value: trend(monthNetProfitAfterExpenses, lastMonthNetProfitAfterExpenses),
+              label: 'so tháng trước',
+            }}
+            variant={
+              monthNetProfitAfterExpenses > 0
+                ? 'success'
+                : monthNetProfitAfterExpenses < 0
+                  ? 'danger'
+                  : 'default'
+            }
           />
           <StatCard
             title="Số đơn"

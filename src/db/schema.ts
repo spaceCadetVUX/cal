@@ -111,5 +111,12 @@ export class SellerDatabase extends Dexie {
       // 18. Expense — query by channelId, date, category
       expenses: 'id, channelId, date, category, isRecurring',
     })
+
+    // Version 2: thêm index bị thiếu cho salesChannels.createdAt và products.name
+    // (orderBy() trong Dexie yêu cầu field phải được index)
+    this.version(2).stores({
+      salesChannels: 'id, type, isActive, createdAt',
+      products: 'id, &sku, categoryId, supplierId, isActive, name',
+    })
   }
 }

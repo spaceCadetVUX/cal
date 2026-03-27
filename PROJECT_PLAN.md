@@ -1154,13 +1154,13 @@ src/
 > `[dep: 1.12]`
 > **Done:** Thêm chi phí recurring → lợi nhuận ròng tháng này cập nhật đúng
 
-- [ ] **Trang Expenses:**
+- [x] **Trang Expenses:**
   - Danh sách chi phí: lọc theo tháng, kênh, loại
   - Tổng chi phí tháng (phân chia: kênh cụ thể / chung)
-- [ ] **Form thêm/sửa chi phí:** đầy đủ fields + toggle `isRecurring`
-- [ ] **Recurring expense generator:** đầu mỗi tháng tự tạo bản sao expense recurring
-- [ ] Hiển thị lợi nhuận ròng (`netProfit`) trong Dashboard (thêm thẻ KPI mới)
-- [ ] `useExpenseStore`
+- [x] **Form thêm/sửa chi phí:** đầy đủ fields + toggle `isRecurring`
+- [x] **Recurring expense generator:** đầu mỗi tháng tự tạo bản sao expense recurring
+- [x] Hiển thị lợi nhuận ròng (`netProfit`) trong Dashboard (thêm thẻ KPI mới)
+- [x] `useExpenseStore`
 
 ---
 

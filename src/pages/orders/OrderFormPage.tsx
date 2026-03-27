@@ -110,7 +110,7 @@ export default function OrderFormPage() {
     catalogLoaded.current = true
     ;(async () => {
       const [products, variants] = await Promise.all([
-        db.products.where('isActive').equals(1).toArray(),
+        db.products.filter((p) => p.isActive).toArray(),
         db.productVariants.toArray(),
       ])
       const map = new Map<string, CatalogItem>()
