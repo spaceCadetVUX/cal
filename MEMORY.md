@@ -94,7 +94,8 @@
 - [x] **1.12** Integration & Polish ✅
 
 ### Phase 2–4
-- [ ] Phase 2: Báo cáo, Advanced Pricing, Import CSV, UX Polish (6 sprints) ← **TIẾP THEO**
+- [x] **2.2** Reports (Doanh thu, Lợi nhuận, Kênh bán, Break-even) ✅
+- [ ] Phase 2: còn lại — 2.1 Expenses, 2.3–2.6 ← **TIẾP THEO**
 - [ ] Phase 3: Supabase Auth + Sync + RBAC (3 sprints)
 - [ ] Phase 4: PWA + Mobile (2 sprints)
 
@@ -286,9 +287,19 @@ src/
 - Loading states: `undefined` = loading, `null` = not found pattern dùng nhất quán ở detail pages
 - `pnpm tsc --noEmit` passed — không có TypeScript errors
 
+## Ghi chú kỹ thuật Sprint 2.2
+
+- `reportAggregator.ts`: `loadReportData(range, channelId?)` → load orders+items từ Dexie; `aggregateByPeriod()` → fill tất cả period buckets (no gaps); `summarizeChannels()` → per-channel stats; `calcBreakEven()` → load expenses tháng hiện tại
+- `exportUtils.ts`: `exportToXlsx()` (SheetJS, dynamic import); `exportToPdf()` (jsPDF + jspdf-autotable, dynamic import)
+- ReportsPage 4 tabs: Revenue (10.1) AreaChart + comparison line; Profit (10.2) ComposedChart bars+margin line + horizontal channel bars; Channels (10.3) table với % tỷ trọng + progress bar; Break-even (10.9) progress bar + tính DT cần/ngày
+- Comparison period = shift range back by same duration; shown as dashed line / % change in stat cards
+- `autoGroupBy()`: day≤14d, week≤90d, month≤500d, quarter otherwise
+- Break-even phụ thuộc Sprint 2.1 (Expenses) — hiện load db.expenses trực tiếp; nếu chưa có data → hiện hướng dẫn thêm chi phí
+- Packages mới: `xlsx` (SheetJS), `jspdf`, `jspdf-autotable` — dynamic import để lazy-load
+
 ## Việc cần làm tiếp — Phase 2
 
-**Sprint 2.1** — Expenses & Net Profit:
+**Sprint 2.1** — Expenses & Net Profit (làm trước để Break-even có đủ data):
 - Trang Expenses + form thêm/sửa chi phí
 - useExpenseStore (CRUD + stats)
 - Recurring expense logic
@@ -296,4 +307,4 @@ src/
 
 ---
 
-*Cập nhật lần cuối: Sprint 1.12 hoàn thành — 2026-03-25*
+*Cập nhật lần cuối: Sprint 2.2 hoàn thành — 2026-03-28*
