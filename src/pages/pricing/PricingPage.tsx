@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { AlertTriangle, Calculator, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, Calculator, Check, Clock, Plus, Trash2, Zap } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { DataTable } from '@/components/shared/DataTable'
@@ -23,7 +23,18 @@ import type { PriceConfig, ProductVariant } from '@/types'
 
 // --------------- Types ---------------
 
-type Tab = 'overview' | 'calculator' | 'assign'
+type Tab = 'overview' | 'calculator' | 'assign' | 'flashsale' | 'bulk'
+
+interface ChannelCompRow {
+  channelId: string
+  channelName: string
+  color?: string
+  platformFeePct: number
+  paymentFeePct: number
+  minPrice: number
+  grossProfit: number
+  margin: number
+}
 
 const inputCls = 'w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 const labelCls = 'text-sm font-medium'
@@ -44,7 +55,7 @@ type AssignFields = z.infer<typeof assignSchema>
 // --------------- Main Component ---------------
 
 export default function PricingPage() {
-  const { configs, latestCostPrices, loading, load, upsert, remove, getLatestCostPrice, refreshCostPrices } = usePriceStore()
+  const { configs, latestCostPrices, loading, load, upsert, remove, getLatestCostPrice, refreshCostPrices, setFlashSale, clearFlashSale, bulkUpdatePrices } = usePriceStore()
   const { products } = useProductStore()
   const { channels } = useChannelStore()
   const { categories } = useCategoryStore()
@@ -212,6 +223,8 @@ export default function PricingPage() {
   const [calcPackaging, setCalcPackaging] = useState('')
   const [calcOther, setCalcOther] = useState('')
   const [calcMarginPct, setCalcMarginPct] = useState(String(settings?.defaultMinMarginPct ?? 20))
+  const [calcTestPrice, setCalcTestPrice] = useState('')
+  const [channelComparison, setChannelComparison] = useState<ChannelCompRow[]>([])
 
   useEffect(() => {
     if (!calcChannelId) return
@@ -220,6 +233,26 @@ export default function PricingPage() {
       setCalcPaymentFee(String(fee.paymentFeePct))
     })
   }, [calcChannelId, calcCategoryId])
+
+  // Multi-channel comparison: recompute when cost price or test price changes
+  useEffect(() => {
+    const cost = parseFloat(calcCostPrice)
+    const testPrice = parseFloat(calcTestPrice)
+    if (!cost || !testPrice || activeChannels.length === 0) {
+      setChannelComparison([])
+      return
+    }
+    const packaging = parseFloat(calcPackaging) || 0
+    const other = parseFloat(calcOther) || 0
+    Promise.all(
+      activeChannels.map(async (ch) => {
+        const fee = await resolveChannelFee(ch.id, calcCategoryId || undefined, db)
+        const minPrice = calcMinSellingPrice({ costPrice: cost, packagingCost: packaging, otherCost: other, platformFeePct: fee.platformFeePct, paymentFeePct: fee.paymentFeePct })
+        const { grossProfitPerUnit, profitMarginPerUnit } = calcProfitPerUnit({ sellingPrice: testPrice, costPrice: cost, platformFeePct: fee.platformFeePct, paymentFeePct: fee.paymentFeePct, packagingCost: packaging, otherCost: other })
+        return { channelId: ch.id, channelName: ch.name, color: ch.color, platformFeePct: fee.platformFeePct, paymentFeePct: fee.paymentFeePct, minPrice, grossProfit: grossProfitPerUnit, margin: profitMarginPerUnit } satisfies ChannelCompRow
+      })
+    ).then(setChannelComparison)
+  }, [calcCostPrice, calcTestPrice, calcPackaging, calcOther, calcCategoryId, activeChannels.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const calcParams = useMemo(() => ({
     costPrice: parseFloat(calcCostPrice) || 0,
@@ -316,6 +349,121 @@ export default function PricingPage() {
     }).profitMarginPerUnit
   }, [watchSelling, assignCostPrice, assignFees, watchPackaging, watchOther])
 
+  // --------------- FLASH SALE TAB ---------------
+
+  const [fsConfigId, setFsConfigId] = useState('')
+  const [fsSalePrice, setFsSalePrice] = useState('')
+  const [fsStart, setFsStart] = useState('')
+  const [fsEnd, setFsEnd] = useState('')
+  const [fsSubmitting, setFsSubmitting] = useState(false)
+
+  const now = new Date()
+  const activeSales = useMemo(() =>
+    deduplicatedConfigs.filter((c) => c.flashSalePrice && c.flashSaleEnd && new Date(c.flashSaleEnd) > now),
+    [deduplicatedConfigs], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+  const upcomingSales = useMemo(() =>
+    deduplicatedConfigs.filter((c) => c.flashSalePrice && c.flashSaleStart && new Date(c.flashSaleStart) > now),
+    [deduplicatedConfigs], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
+  const fsConfig = deduplicatedConfigs.find((c) => c.id === fsConfigId) ?? null
+  const fsCostPrice = fsConfig ? (latestCostPrices[fsConfig.productId] ?? null) : null
+  const fsChannel = fsConfig?.channelId ? channelMap[fsConfig.channelId] : null
+  const fsMinPrice = fsConfig && fsCostPrice != null
+    ? calcMinSellingPrice({ costPrice: fsCostPrice, packagingCost: fsConfig.packagingCost, otherCost: fsConfig.otherCost, platformFeePct: fsChannel?.platformFeePct ?? 0, paymentFeePct: fsChannel?.paymentFeePct ?? 0 })
+    : null
+  const fsSalePriceNum = parseFloat(fsSalePrice) || 0
+  const fsBelowFloor = fsMinPrice != null && fsSalePriceNum > 0 && fsSalePriceNum < fsMinPrice
+
+  const handleFsSubmit = async () => {
+    if (!fsConfigId) { toast.error('Chọn sản phẩm / cấu hình giá'); return }
+    if (!fsSalePriceNum || fsSalePriceNum <= 0) { toast.error('Nhập giá sale hợp lệ'); return }
+    if (!fsStart || !fsEnd) { toast.error('Nhập thời gian bắt đầu và kết thúc'); return }
+    const startDate = new Date(fsStart)
+    const endDate = new Date(fsEnd)
+    if (endDate <= startDate) { toast.error('Thời gian kết thúc phải sau thời gian bắt đầu'); return }
+    setFsSubmitting(true)
+    try {
+      await setFlashSale(fsConfigId, fsSalePriceNum, startDate, endDate)
+      toast.success('Đã thiết lập Flash Sale')
+      setFsConfigId(''); setFsSalePrice(''); setFsStart(''); setFsEnd('')
+    } catch {
+      toast.error('Lưu thất bại')
+    } finally {
+      setFsSubmitting(false)
+    }
+  }
+
+  const handleClearFlashSale = async (id: string) => {
+    await clearFlashSale(id)
+    toast.success('Đã hủy Flash Sale')
+  }
+
+  // --------------- BULK UPDATE TAB ---------------
+
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set())
+  const [bulkChannelFilter, setBulkChannelFilter] = useState<'base' | string>('base')
+  const [bulkAdjType, setBulkAdjType] = useState<'pct_up' | 'pct_down' | 'fixed_up' | 'fixed_down'>('pct_up')
+  const [bulkAdjValue, setBulkAdjValue] = useState('')
+  const [bulkPreviewMode, setBulkPreviewMode] = useState(false)
+  const [bulkApplying, setBulkApplying] = useState(false)
+
+  const bulkConfigs = useMemo(() =>
+    deduplicatedConfigs.filter((c) => bulkChannelFilter === 'base' ? !c.channelId : c.channelId === bulkChannelFilter),
+    [deduplicatedConfigs, bulkChannelFilter],
+  )
+
+  const calcNewPrice = useCallback((currentPrice: number) => {
+    const val = parseFloat(bulkAdjValue) || 0
+    let newPrice = currentPrice
+    if (bulkAdjType === 'pct_up') newPrice = currentPrice * (1 + val / 100)
+    else if (bulkAdjType === 'pct_down') newPrice = currentPrice * (1 - val / 100)
+    else if (bulkAdjType === 'fixed_up') newPrice = currentPrice + val
+    else if (bulkAdjType === 'fixed_down') newPrice = currentPrice - val
+    return Math.max(0, Math.round(newPrice))
+  }, [bulkAdjType, bulkAdjValue])
+
+  const bulkPreview = useMemo(() =>
+    bulkConfigs
+      .filter((c) => bulkSelected.has(c.id))
+      .map((c) => {
+        const costPrice = latestCostPrices[c.productId]
+        const ch = c.channelId ? channelMap[c.channelId] : null
+        const newPrice = calcNewPrice(c.sellingPrice)
+        const newMin = costPrice != null
+          ? calcMinSellingPrice({ costPrice, packagingCost: c.packagingCost, otherCost: c.otherCost, platformFeePct: ch?.platformFeePct ?? 0, paymentFeePct: ch?.paymentFeePct ?? 0 })
+          : null
+        const newMargin = costPrice != null
+          ? calcProfitPerUnit({ sellingPrice: newPrice, costPrice, platformFeePct: ch?.platformFeePct ?? 0, paymentFeePct: ch?.paymentFeePct ?? 0, packagingCost: c.packagingCost, otherCost: c.otherCost }).profitMarginPerUnit
+          : null
+        return { config: c, newPrice, newMin, newMargin }
+      }),
+    [bulkConfigs, bulkSelected, calcNewPrice, latestCostPrices, channelMap],
+  )
+
+  const handleBulkApply = async () => {
+    if (bulkPreview.length === 0) return
+    setBulkApplying(true)
+    try {
+      await bulkUpdatePrices(
+        bulkPreview.map(({ config, newPrice, newMin }) => ({
+          id: config.id,
+          sellingPrice: newPrice,
+          minSellingPrice: newMin ?? config.minSellingPrice,
+        })),
+      )
+      toast.success(`Đã cập nhật giá cho ${bulkPreview.length} sản phẩm`)
+      setBulkSelected(new Set())
+      setBulkAdjValue('')
+      setBulkPreviewMode(false)
+    } catch {
+      toast.error('Cập nhật thất bại')
+    } finally {
+      setBulkApplying(false)
+    }
+  }
+
   const prefillAssign = (c: PriceConfig) => {
     aReset({
       productId: c.productId,
@@ -354,9 +502,11 @@ export default function PricingPage() {
   // --------------- Render ---------------
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'overview', label: 'Danh sách giá' },
+    { key: 'overview',   label: 'Danh sách giá' },
     { key: 'calculator', label: 'Máy tính giá' },
-    { key: 'assign', label: 'Gán giá' },
+    { key: 'assign',     label: 'Gán giá' },
+    { key: 'flashsale',  label: 'Flash Sale' },
+    { key: 'bulk',       label: 'Cập nhật hàng loạt' },
   ]
 
   return (
@@ -405,6 +555,7 @@ export default function PricingPage() {
 
       {/* ============ TAB: CALCULATOR ============ */}
       {activeTab === 'calculator' && (
+        <div className="space-y-6">
         <div className="grid grid-cols-2 gap-6">
           <div className="rounded-xl border bg-card p-5 space-y-4">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Thông số đầu vào</h3>
@@ -457,6 +608,11 @@ export default function PricingPage() {
               <label className={labelCls}>% Margin mong muốn</label>
               <input type="number" step="0.5" value={calcMarginPct} onChange={(e) => setCalcMarginPct(e.target.value)} className={inputCls} />
             </div>
+
+            <div className="space-y-1 border-t pt-4">
+              <label className={labelCls}>Giá bán thực tế (so sánh đa kênh)</label>
+              <input type="number" value={calcTestPrice} onChange={(e) => setCalcTestPrice(e.target.value)} className={inputCls} placeholder="Nhập giá để so sánh margin theo từng kênh" />
+            </div>
           </div>
 
           <div className="rounded-xl border bg-card p-5 space-y-4">
@@ -488,6 +644,54 @@ export default function PricingPage() {
               </>
             )}
           </div>
+        </div>
+
+        {/* Multi-channel comparison table */}
+        {channelComparison.length > 0 && (
+          <div className="rounded-xl border bg-card overflow-hidden">
+            <div className="px-5 py-3 border-b flex items-center gap-2">
+              <h3 className="text-sm font-semibold">So sánh đa kênh tại giá {formatVND(parseFloat(calcTestPrice) || 0)}</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Kênh</th>
+                    <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Phí sàn</th>
+                    <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Phí TT</th>
+                    <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Giá sàn</th>
+                    <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">LN / đơn</th>
+                    <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Margin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {channelComparison.map((row) => {
+                    const belowFloor = parseFloat(calcTestPrice) < row.minPrice
+                    return (
+                      <tr key={row.channelId} className={`hover:bg-muted/20 ${belowFloor ? 'bg-red-50/30 dark:bg-red-950/10' : ''}`}>
+                        <td className="px-4 py-2.5">
+                          <ChannelBadge name={row.channelName} color={row.color} />
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{row.platformFeePct}%</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{row.paymentFeePct}%</td>
+                        <td className={`px-4 py-2.5 text-right tabular-nums ${belowFloor ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>
+                          {formatVND(row.minPrice)}
+                          {belowFloor && <AlertTriangle className="inline ml-1 h-3.5 w-3.5" />}
+                        </td>
+                        <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${row.grossProfit < 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>
+                          {formatVND(row.grossProfit)}
+                        </td>
+                        <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${row.margin < 0 ? 'text-red-500' : row.margin < 15 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {formatPct(row.margin)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         </div>
       )}
 
@@ -608,6 +812,309 @@ export default function PricingPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ============ TAB: FLASH SALE ============ */}
+      {activeTab === 'flashsale' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            {/* Form */}
+            <div className="rounded-xl border bg-card p-5 space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <Zap className="h-4 w-4 text-yellow-500" /> Thiết lập Flash Sale
+              </h3>
+
+              <div className="space-y-1">
+                <label className={labelCls}>Cấu hình giá <span className="text-red-500">*</span></label>
+                <select value={fsConfigId} onChange={(e) => setFsConfigId(e.target.value)} className={inputCls}>
+                  <option value="">— Chọn sản phẩm / kênh —</option>
+                  {deduplicatedConfigs.map((c) => {
+                    const p = productMap[c.productId]
+                    const ch = c.channelId ? channelMap[c.channelId] : null
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {p?.name ?? c.productId} — {ch ? ch.name : 'Base (tất cả kênh)'}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+
+              {fsConfig && (
+                <div className="rounded-lg bg-muted/40 px-3 py-2 text-sm space-y-0.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Giá bán hiện tại</span>
+                    <span className="font-semibold tabular-nums">{formatVND(fsConfig.sellingPrice)}</span>
+                  </div>
+                  {fsMinPrice != null && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Giá sàn</span>
+                      <span className="tabular-nums text-muted-foreground">{formatVND(fsMinPrice)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className={labelCls}>Giá sale (₫) <span className="text-red-500">*</span></label>
+                <input type="number" min={0} value={fsSalePrice} onChange={(e) => setFsSalePrice(e.target.value)} className={inputCls} placeholder="0" />
+                {fsBelowFloor && (
+                  <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    Giá sale thấp hơn giá sàn ({formatVND(fsMinPrice!)}) — bán lỗ!
+                  </div>
+                )}
+                {fsConfig && fsSalePriceNum > 0 && fsSalePriceNum < fsConfig.sellingPrice && (
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    Giảm {formatPct(((fsConfig.sellingPrice - fsSalePriceNum) / fsConfig.sellingPrice) * 100, 0)} so với giá gốc
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className={labelCls}>Bắt đầu <span className="text-red-500">*</span></label>
+                  <input type="datetime-local" value={fsStart} onChange={(e) => setFsStart(e.target.value)} className={inputCls} />
+                </div>
+                <div className="space-y-1">
+                  <label className={labelCls}>Kết thúc <span className="text-red-500">*</span></label>
+                  <input type="datetime-local" value={fsEnd} onChange={(e) => setFsEnd(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+
+              <button
+                onClick={handleFsSubmit}
+                disabled={fsSubmitting}
+                className="w-full rounded-lg bg-yellow-500 py-2.5 text-sm font-medium text-white hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Zap className="h-4 w-4" />
+                {fsSubmitting ? 'Đang lưu...' : 'Kích hoạt Flash Sale'}
+              </button>
+            </div>
+
+            {/* Active / upcoming */}
+            <div className="space-y-4">
+              {activeSales.length === 0 && upcomingSales.length === 0 ? (
+                <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
+                  Chưa có Flash Sale nào đang chạy
+                </div>
+              ) : (
+                <>
+                  {activeSales.length > 0 && (
+                    <div className="rounded-xl border bg-card overflow-hidden">
+                      <div className="px-5 py-3 border-b flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        <h3 className="text-sm font-semibold">Đang chạy ({activeSales.length})</h3>
+                      </div>
+                      <div className="divide-y">
+                        {activeSales.map((c) => {
+                          const p = productMap[c.productId]
+                          const ch = c.channelId ? channelMap[c.channelId] : null
+                          const discount = c.sellingPrice > 0
+                            ? ((c.sellingPrice - c.flashSalePrice!) / c.sellingPrice) * 100
+                            : 0
+                          return (
+                            <div key={c.id} className="flex items-center justify-between px-5 py-3 gap-3">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{p?.name ?? c.productId}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {ch ? ch.name : 'Base'} · {formatVND(c.sellingPrice)} → <span className="text-yellow-600 font-semibold">{formatVND(c.flashSalePrice!)}</span>
+                                  {discount > 0 && <span className="ml-1 text-green-600">−{formatPct(discount, 0)}</span>}
+                                </p>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  Đến {c.flashSaleEnd ? new Date(c.flashSaleEnd).toLocaleString('vi-VN') : ''}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleClearFlashSale(c.id)}
+                                className="shrink-0 rounded-lg border px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                              >
+                                Hủy
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {upcomingSales.length > 0 && (
+                    <div className="rounded-xl border bg-card overflow-hidden">
+                      <div className="px-5 py-3 border-b">
+                        <h3 className="text-sm font-semibold text-muted-foreground">Sắp diễn ra ({upcomingSales.length})</h3>
+                      </div>
+                      <div className="divide-y">
+                        {upcomingSales.map((c) => {
+                          const p = productMap[c.productId]
+                          const ch = c.channelId ? channelMap[c.channelId] : null
+                          return (
+                            <div key={c.id} className="flex items-center justify-between px-5 py-3 gap-3">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{p?.name ?? c.productId}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {ch ? ch.name : 'Base'} · Giá sale: <span className="font-semibold">{formatVND(c.flashSalePrice!)}</span>
+                                </p>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  Từ {c.flashSaleStart ? new Date(c.flashSaleStart).toLocaleString('vi-VN') : ''}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleClearFlashSale(c.id)}
+                                className="shrink-0 rounded-lg border px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                              >
+                                Hủy
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============ TAB: BULK UPDATE ============ */}
+      {activeTab === 'bulk' && (
+        <div className="space-y-4">
+          {/* Controls */}
+          <div className="rounded-xl border bg-card p-4 flex flex-wrap items-end gap-4">
+            <div className="space-y-1">
+              <label className={labelCls}>Kênh</label>
+              <select value={bulkChannelFilter} onChange={(e) => { setBulkChannelFilter(e.target.value); setBulkSelected(new Set()) }} className={inputCls + ' min-w-[160px]'}>
+                <option value="base">Base (tất cả kênh)</option>
+                {activeChannels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className={labelCls}>Điều chỉnh</label>
+              <select value={bulkAdjType} onChange={(e) => setBulkAdjType(e.target.value as typeof bulkAdjType)} className={inputCls + ' min-w-[140px]'}>
+                <option value="pct_up">Tăng %</option>
+                <option value="pct_down">Giảm %</option>
+                <option value="fixed_up">Tăng ₫</option>
+                <option value="fixed_down">Giảm ₫</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className={labelCls}>Giá trị</label>
+              <input
+                type="number" min={0} step={bulkAdjType.startsWith('pct') ? '0.5' : '1000'}
+                value={bulkAdjValue} onChange={(e) => setBulkAdjValue(e.target.value)}
+                className={inputCls + ' w-32'}
+                placeholder={bulkAdjType.startsWith('pct') ? '10' : '10000'}
+              />
+            </div>
+            <div className="flex items-end gap-2 pb-0.5">
+              <button
+                onClick={() => setBulkPreviewMode((v) => !v)}
+                disabled={bulkSelected.size === 0 || !bulkAdjValue}
+                className="rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-40"
+              >
+                {bulkPreviewMode ? 'Ẩn preview' : 'Xem trước'}
+              </button>
+              {bulkPreviewMode && bulkPreview.length > 0 && (
+                <button
+                  onClick={handleBulkApply}
+                  disabled={bulkApplying}
+                  className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Check className="h-4 w-4" />
+                  {bulkApplying ? 'Đang áp dụng...' : `Áp dụng (${bulkPreview.length})`}
+                </button>
+              )}
+            </div>
+            {bulkSelected.size > 0 && (
+              <span className="text-sm text-muted-foreground pb-0.5">Đã chọn {bulkSelected.size} / {bulkConfigs.length}</span>
+            )}
+          </div>
+
+          {/* Product list */}
+          {bulkConfigs.length === 0 ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">
+              Không có cấu hình giá nào cho kênh này
+            </div>
+          ) : (
+            <div className="rounded-xl border bg-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="px-4 py-2.5 w-10">
+                        <input
+                          type="checkbox"
+                          checked={bulkSelected.size === bulkConfigs.length && bulkConfigs.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) setBulkSelected(new Set(bulkConfigs.map((c) => c.id)))
+                            else setBulkSelected(new Set())
+                          }}
+                          className="rounded"
+                        />
+                      </th>
+                      <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Sản phẩm</th>
+                      <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Giá hiện tại</th>
+                      {bulkPreviewMode && <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Giá mới</th>}
+                      {bulkPreviewMode && <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Margin mới</th>}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {bulkConfigs.map((c) => {
+                      const p = productMap[c.productId]
+                      const preview = bulkPreviewMode ? bulkPreview.find((b) => b.config.id === c.id) : null
+                      const isSelected = bulkSelected.has(c.id)
+                      const belowFloor = preview && preview.newMin != null && preview.newPrice < preview.newMin
+                      return (
+                        <tr key={c.id} className={`hover:bg-muted/20 ${isSelected ? 'bg-primary/5' : ''}`}>
+                          <td className="px-4 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const next = new Set(bulkSelected)
+                                if (e.target.checked) next.add(c.id)
+                                else next.delete(c.id)
+                                setBulkSelected(next)
+                              }}
+                              className="rounded"
+                            />
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="font-medium">{p?.name ?? c.productId}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{p?.sku ?? ''}</div>
+                          </td>
+                          <td className="px-4 py-2.5 text-right tabular-nums font-medium">{formatVND(c.sellingPrice)}</td>
+                          {bulkPreviewMode && (
+                            <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${isSelected ? (belowFloor ? 'text-red-600' : 'text-primary') : 'text-muted-foreground'}`}>
+                              {isSelected ? (
+                                <>
+                                  {formatVND(preview!.newPrice)}
+                                  {belowFloor && <AlertTriangle className="inline ml-1 h-3.5 w-3.5 text-red-500" />}
+                                </>
+                              ) : '—'}
+                            </td>
+                          )}
+                          {bulkPreviewMode && (
+                            <td className={`px-4 py-2.5 text-right tabular-nums ${
+                              !isSelected || preview?.newMargin == null ? 'text-muted-foreground' :
+                              preview.newMargin < 0 ? 'text-red-500' :
+                              preview.newMargin < 15 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'
+                            }`}>
+                              {isSelected && preview?.newMargin != null ? formatPct(preview.newMargin) : '—'}
+                            </td>
+                          )}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

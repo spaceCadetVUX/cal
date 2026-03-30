@@ -35,6 +35,14 @@ interface PriceStore {
 
   // Lấy config hiệu quả nhất (channel-specific > base) — SYNC từ in-memory
   getEffectiveConfig: (productId: string, variantId?: string | null, channelId?: string | null) => PriceConfig | null
+
+  // Flash Sale
+  setFlashSale: (id: string, price: number, start: Date, end: Date) => Promise<void>
+  clearFlashSale: (id: string) => Promise<void>
+  expireFlashSales: () => Promise<number>
+
+  // Bulk price update
+  bulkUpdatePrices: (updates: { id: string; sellingPrice: number; minSellingPrice: number }[]) => Promise<void>
 }
 
 // --------------- Store ---------------
@@ -48,6 +56,8 @@ export const usePriceStore = create<PriceStore>((set, get) => ({
     set({ loading: true })
     const configs = await db.priceConfigs.orderBy('effectiveFrom').reverse().toArray()
     set({ configs, loading: false })
+    // Auto-expire flash sales
+    await get().expireFlashSales()
     // Tải cost prices cho tất cả products có config
     const productIds = [...new Set(configs.map((c) => c.productId))]
     await get().refreshCostPrices(productIds)
@@ -144,6 +154,62 @@ export const usePriceStore = create<PriceStore>((set, get) => ({
     )
 
     set((s) => ({ latestCostPrices: { ...s.latestCostPrices, ...updates } }))
+  },
+
+  setFlashSale: async (id, price, start, end) => {
+    const patch = { flashSalePrice: price, flashSaleStart: start, flashSaleEnd: end }
+    await db.priceConfigs.update(id, patch)
+    set((s) => ({ configs: s.configs.map((c) => (c.id === id ? { ...c, ...patch } : c)) }))
+  },
+
+  clearFlashSale: async (id) => {
+    await db.priceConfigs.update(id, { flashSalePrice: undefined, flashSaleStart: undefined, flashSaleEnd: undefined })
+    set((s) => ({
+      configs: s.configs.map((c) =>
+        c.id === id
+          ? { ...c, flashSalePrice: undefined, flashSaleStart: undefined, flashSaleEnd: undefined }
+          : c,
+      ),
+    }))
+  },
+
+  expireFlashSales: async () => {
+    const now = new Date()
+    // Check DB directly — works even before store is loaded
+    const allConfigs = await db.priceConfigs.toArray()
+    const expired = allConfigs.filter((c) => c.flashSaleEnd && new Date(c.flashSaleEnd) <= now)
+    if (expired.length === 0) return 0
+    for (const c of expired) {
+      await db.priceConfigs.update(c.id, { flashSalePrice: undefined, flashSaleStart: undefined, flashSaleEnd: undefined })
+    }
+    set((s) => {
+      if (s.configs.length === 0) return s
+      const expiredIds = new Set(expired.map((e) => e.id))
+      return {
+        configs: s.configs.map((c) =>
+          expiredIds.has(c.id)
+            ? { ...c, flashSalePrice: undefined, flashSaleStart: undefined, flashSaleEnd: undefined }
+            : c,
+        ),
+      }
+    })
+    return expired.length
+  },
+
+  bulkUpdatePrices: async (updates) => {
+    const now = new Date()
+    await Promise.all(
+      updates.map(({ id, sellingPrice, minSellingPrice }) =>
+        db.priceConfigs.update(id, { sellingPrice, minSellingPrice, effectiveFrom: now }),
+      ),
+    )
+    const updateMap = new Map(updates.map((u) => [u.id, u]))
+    set((s) => ({
+      configs: s.configs.map((c) => {
+        const u = updateMap.get(c.id)
+        return u ? { ...c, sellingPrice: u.sellingPrice, minSellingPrice: u.minSellingPrice, effectiveFrom: now } : c
+      }),
+    }))
   },
 
   getEffectiveConfig: (productId, variantId, channelId) => {

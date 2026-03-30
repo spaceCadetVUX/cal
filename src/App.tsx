@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { usePriceStore } from '@/stores/usePriceStore'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
 import ChannelsPage from '@/pages/channels/ChannelsPage'
 import CategoriesPage from '@/pages/categories/CategoriesPage'
@@ -24,6 +26,12 @@ import SettingsPage from '@/pages/settings/SettingsPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
 function App() {
+  const { expireFlashSales } = usePriceStore()
+
+  useEffect(() => {
+    expireFlashSales()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
     <BrowserRouter>
