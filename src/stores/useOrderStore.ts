@@ -58,6 +58,11 @@ function computeSummary(order: Order, items: OrderItem[]): OrderSummary {
 
 // --------------- Store ---------------
 
+export interface ReturnItemInput {
+  itemId: string
+  quantity: number
+}
+
 interface OrderStore {
   orders: OrderSummary[]
   loading: boolean
@@ -67,6 +72,7 @@ interface OrderStore {
   updateStatus: (id: string, status: OrderStatus) => Promise<void>
   deleteOrder: (id: string) => Promise<string | null>
   getOrderDetail: (id: string) => Promise<{ order: Order; items: OrderItem[] } | null>
+  returnOrder: (orderId: string, returnItems: ReturnItemInput[]) => Promise<string | null>
 }
 
 export const useOrderStore = create<OrderStore>((set, get) => ({
@@ -220,5 +226,56 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
     if (!order) return null
     const items = await db.orderItems.where('orderId').equals(id).toArray()
     return { order, items }
+  },
+
+  returnOrder: async (orderId, returnItems) => {
+    const order = get().orders.find((o) => o.id === orderId)
+    if (!order) return 'Đơn hàng không tồn tại'
+    if (order.status === 'cancelled') return 'Không thể hoàn trả đơn đã huỷ'
+
+    const now = new Date()
+
+    await db.transaction('rw', [db.orders, db.orderItems, db.inventoryRecords, db.stockMovements], async () => {
+      for (const ret of returnItems) {
+        const item = await db.orderItems.get(ret.itemId)
+        if (!item || item.orderId !== orderId) continue
+        const qty = Math.min(ret.quantity, item.quantity)
+        if (qty <= 0) continue
+
+        // Add back to inventory
+        const existing = await db.inventoryRecords
+          .where('productId')
+          .equals(item.productId)
+          .filter((r) => r.variantId === item.variantId)
+          .first()
+
+        if (existing) {
+          await db.inventoryRecords.update(existing.id, {
+            quantity: existing.quantity + qty,
+            updatedAt: now,
+          })
+        }
+
+        await db.stockMovements.add({
+          id: generateId(),
+          productId: item.productId,
+          variantId: item.variantId,
+          type: 'return',
+          quantity: qty,
+          channelId: order.channelId,
+          refId: orderId,
+          createdAt: now,
+        })
+      }
+
+      await db.orders.update(orderId, { status: 'returned', updatedAt: now })
+    })
+
+    set((s) => ({
+      orders: s.orders.map((o) =>
+        o.id === orderId ? { ...o, status: 'returned', updatedAt: now } : o,
+      ),
+    }))
+    return null
   },
 }))

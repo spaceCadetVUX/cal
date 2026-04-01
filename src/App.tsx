@@ -9,6 +9,7 @@ import CategoriesPage from '@/pages/categories/CategoriesPage'
 import SuppliersPage from '@/pages/suppliers/SuppliersPage'
 import SupplierDetailPage from '@/pages/suppliers/SupplierDetailPage'
 import CustomersPage from '@/pages/customers/CustomersPage'
+import CustomerDetailPage from '@/pages/customers/CustomerDetailPage'
 import ProductsPage from '@/pages/products/ProductsPage'
 import ProductDetailPage from '@/pages/products/ProductDetailPage'
 import ImportsPage from '@/pages/imports/ImportsPage'
@@ -20,6 +21,7 @@ import OrdersPage from '@/pages/orders/OrdersPage'
 import OrderFormPage from '@/pages/orders/OrderFormPage'
 import OrderDetailPage from '@/pages/orders/OrderDetailPage'
 import PosPage from '@/pages/orders/PosPage'
+import CsvImportPage from '@/pages/orders/CsvImportPage'
 import ExpensesPage from '@/pages/expenses/ExpensesPage'
 import ReportsPage from '@/pages/reports/ReportsPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
@@ -43,6 +45,7 @@ function App() {
           <Route path="suppliers" element={<SuppliersPage />} />
           <Route path="suppliers/:id" element={<SupplierDetailPage />} />
           <Route path="customers" element={<CustomersPage />} />
+          <Route path="customers/:id" element={<CustomerDetailPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/:id" element={<ProductDetailPage />} />
           <Route path="imports" element={<ImportsPage />} />
@@ -55,6 +58,7 @@ function App() {
             <Route index element={<OrdersPage />} />
             <Route path="new" element={<OrderFormPage />} />
             <Route path="pos" element={<PosPage />} />
+            <Route path="import-csv" element={<CsvImportPage />} />
             <Route path=":id" element={<OrderDetailPage />} />
           </Route>
           <Route path="expenses" element={<ExpensesPage />} />

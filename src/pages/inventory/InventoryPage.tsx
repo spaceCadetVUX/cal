@@ -439,15 +439,12 @@ export default function InventoryPage() {
             )}
           </div>
 
-          {loading ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Đang tải...</p>
-          ) : (
-            <DataTable
-              columns={overviewColumns}
-              data={filteredItems}
-              searchPlaceholder="Tìm theo tên, SKU..."
-            />
-          )}
+          <DataTable
+            columns={overviewColumns}
+            data={loading ? [] : filteredItems}
+            searchPlaceholder="Tìm theo tên, SKU..."
+            emptyMessage={loading ? 'Đang tải...' : 'Chưa có dữ liệu tồn kho.'}
+          />
         </div>
       )}
 

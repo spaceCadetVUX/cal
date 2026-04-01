@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Plus, ShoppingCart, Trash2 } from 'lucide-react'
+import { Eye, FileUp, Plus, ShoppingCart, Trash2 } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { DataTable } from '@/components/shared/DataTable'
@@ -168,6 +168,7 @@ export default function OrdersPage() {
 
   return (
     <PageLayout
+      loading={loading}
       title="Đơn bán"
       action={
         <div className="flex items-center gap-2">
@@ -177,6 +178,13 @@ export default function OrdersPage() {
           >
             <ShoppingCart className="h-4 w-4" />
             POS Mode
+          </button>
+          <button
+            onClick={() => navigate('/orders/import-csv')}
+            className="flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            <FileUp className="h-4 w-4" />
+            Import CSV
           </button>
           <button
             onClick={() => navigate('/orders/new')}
@@ -226,15 +234,12 @@ export default function OrdersPage() {
         </span>
       </div>
 
-      {loading ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">Đang tải...</p>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          searchPlaceholder="Tìm theo mã đơn..."
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={filtered}
+        searchPlaceholder="Tìm theo mã đơn..."
+        emptyMessage="Chưa có đơn hàng nào."
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

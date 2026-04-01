@@ -107,6 +107,7 @@ export default function SuppliersPage() {
 
   return (
     <PageLayout
+      loading={loading}
       title="Nhà cung cấp"
       action={
         <button
@@ -118,15 +119,12 @@ export default function SuppliersPage() {
         </button>
       }
     >
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Đang tải...</p>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={suppliers}
-          searchPlaceholder="Tìm theo tên, SĐT..."
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={suppliers}
+        searchPlaceholder="Tìm theo tên, SĐT..."
+        emptyMessage="Chưa có nhà cung cấp nào."
+      />
 
       <SupplierFormDialog
         open={dialogOpen}

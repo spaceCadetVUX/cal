@@ -175,6 +175,7 @@ export default function CategoriesPage() {
 
   return (
     <PageLayout
+      loading={loading}
       title="Danh mục sản phẩm"
       action={
         <button
@@ -186,11 +187,7 @@ export default function CategoriesPage() {
         </button>
       }
     >
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Đang tải...</p>
-      ) : (
-        <DataTable columns={columns} data={categories} searchPlaceholder="Tìm danh mục..." />
-      )}
+      <DataTable columns={columns} data={categories} searchPlaceholder="Tìm danh mục..." emptyMessage="Chưa có danh mục nào." />
 
       <CategoryFormDialog open={dialogOpen} onClose={() => setDialogOpen(false)} editing={editing} />
 

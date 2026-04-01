@@ -3,8 +3,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { useNavigate } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Eye, Plus, Pencil, Trash2, X } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { DataTable } from '@/components/shared/DataTable'
@@ -180,6 +181,7 @@ const TYPE_FILTER_OPTIONS: { value: CustomerType | ''; label: string }[] = [
 ]
 
 export default function CustomersPage() {
+  const navigate = useNavigate()
   const { customers, stats, loading, load, remove } = useCustomerStore()
   const [typeFilter, setTypeFilter] = useState<CustomerType | ''>('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -243,6 +245,13 @@ export default function CustomersPage() {
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
           <button
+            onClick={() => navigate(`/customers/${row.original.id}`)}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            title="Chi tiết"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => openEdit(row.original)}
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
             title="Sửa"
@@ -263,6 +272,7 @@ export default function CustomersPage() {
 
   return (
     <PageLayout
+      loading={loading}
       title="Khách hàng"
       action={
         <button
@@ -292,11 +302,7 @@ export default function CustomersPage() {
         ))}
       </div>
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Đang tải...</p>
-      ) : (
-        <DataTable columns={columns} data={filtered} searchPlaceholder="Tìm theo tên, SĐT..." />
-      )}
+      <DataTable columns={columns} data={filtered} searchPlaceholder="Tìm theo tên, SĐT..." emptyMessage="Chưa có khách hàng nào." />
 
       <CustomerFormDialog open={dialogOpen} onClose={() => setDialogOpen(false)} editing={editing} />
 

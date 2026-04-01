@@ -424,6 +424,7 @@ export default function ChannelsPage() {
 
   return (
     <PageLayout
+      loading={loading}
       title="Kênh bán"
       action={
         <button
@@ -435,11 +436,7 @@ export default function ChannelsPage() {
         </button>
       }
     >
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Đang tải...</p>
-      ) : (
-        <DataTable columns={columns} data={channels} searchPlaceholder="Tìm theo tên kênh..." />
-      )}
+      <DataTable columns={columns} data={channels} searchPlaceholder="Tìm theo tên kênh..." emptyMessage="Chưa có kênh bán nào." />
 
       <ChannelFormDialog
         open={dialogOpen}

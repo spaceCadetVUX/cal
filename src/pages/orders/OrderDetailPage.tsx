@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { StatCard } from '@/components/shared/StatCard'
 import { ChannelBadge } from '@/components/shared/ChannelBadge'
@@ -52,8 +52,11 @@ export default function OrderDetailPage() {
   const [productNames, setProductNames] = useState<Record<string, string>>({})
   const [variantNames, setVariantNames] = useState<Record<string, string>>({})
   const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [showReturnDialog, setShowReturnDialog] = useState(false)
+  const [returnQtys, setReturnQtys] = useState<Record<string, number>>({})
+  const [returning, setReturning] = useState(false)
 
-  const { getOrderDetail } = useOrderStore()
+  const { getOrderDetail, returnOrder } = useOrderStore()
 
   useEffect(() => {
     if (!id) return
@@ -115,6 +118,11 @@ export default function OrderDetailPage() {
   const totalOther = items.reduce((s, i) => s + i.otherCost * i.quantity, 0)
 
   const handleStatusChange = async (newStatus: OrderStatus) => {
+    if (newStatus === 'returned') {
+      setReturnQtys(Object.fromEntries(items.map((i) => [i.id, i.quantity])))
+      setShowReturnDialog(true)
+      return
+    }
     setUpdatingStatus(true)
     try {
       await updateStatus(order.id, newStatus)
@@ -124,6 +132,25 @@ export default function OrderDetailPage() {
       toast.error('Cập nhật thất bại')
     } finally {
       setUpdatingStatus(false)
+    }
+  }
+
+  const handleReturn = async () => {
+    setReturning(true)
+    try {
+      const returnItems = Object.entries(returnQtys)
+        .filter(([, qty]) => qty > 0)
+        .map(([itemId, quantity]) => ({ itemId, quantity }))
+      if (returnItems.length === 0) { toast.error('Chọn ít nhất 1 sản phẩm'); return }
+      const err = await returnOrder(order.id, returnItems)
+      if (err) { toast.error(err); return }
+      setOrder((prev) => prev ? { ...prev, status: 'returned' } : prev)
+      setShowReturnDialog(false)
+      toast.success('Đã tạo hoàn trả, hàng đã được hoàn kho')
+    } catch {
+      toast.error('Hoàn trả thất bại')
+    } finally {
+      setReturning(false)
     }
   }
 
@@ -151,9 +178,19 @@ export default function OrderDetailPage() {
                   : 'bg-primary text-primary-foreground hover:opacity-90'
               }`}
             >
-              → {STATUS_CONFIG[s].label}
+              {s === 'returned' ? <RotateCcw className="inline h-3.5 w-3.5 mr-1" /> : '→ '}
+              {STATUS_CONFIG[s].label}
             </button>
           ))}
+          {order.status === 'delivered' && (
+            <button
+              onClick={() => { setReturnQtys(Object.fromEntries(items.map((i) => [i.id, i.quantity]))); setShowReturnDialog(true) }}
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Tạo hoàn trả
+            </button>
+          )}
         </div>
       }
     >
@@ -283,6 +320,58 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Return Dialog */}
+      {showReturnDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-background border shadow-xl">
+            <div className="px-5 py-4 border-b">
+              <h2 className="text-base font-semibold">Tạo hoàn trả đơn hàng</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Chọn sản phẩm và số lượng cần hoàn trả</p>
+            </div>
+            <div className="p-5 space-y-3 max-h-80 overflow-y-auto">
+              {items.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{productNames[item.productId] ?? '—'}</div>
+                    {item.variantId && (
+                      <div className="text-xs text-muted-foreground">{variantNames[item.variantId] ?? '—'}</div>
+                    )}
+                    <div className="text-xs text-muted-foreground">Đặt: {item.quantity}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-muted-foreground">Hoàn:</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={item.quantity}
+                      value={returnQtys[item.id] ?? 0}
+                      onChange={(e) => setReturnQtys((prev) => ({ ...prev, [item.id]: Math.min(item.quantity, Math.max(0, parseInt(e.target.value) || 0)) }))}
+                      className="w-16 rounded-lg border px-2 py-1 text-sm text-center [appearance:textfield]"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-4 border-t flex justify-end gap-2">
+              <button
+                onClick={() => setShowReturnDialog(false)}
+                disabled={returning}
+                className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleReturn}
+                disabled={returning}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {returning ? 'Đang xử lý...' : 'Xác nhận hoàn trả'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageLayout>
   )
 }

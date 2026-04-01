@@ -9,7 +9,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table'
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Search, Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DataTableProps<TData, TValue> {
@@ -18,6 +18,8 @@ interface DataTableProps<TData, TValue> {
   searchPlaceholder?: string
   pageSize?: number
   toolbar?: React.ReactNode // slot for action buttons above table
+  emptyMessage?: string    // custom empty state message
+  emptyIcon?: React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -26,6 +28,8 @@ export function DataTable<TData, TValue>({
   searchPlaceholder = 'Tìm kiếm...',
   pageSize = 20,
   toolbar,
+  emptyMessage = 'Không có dữ liệu',
+  emptyIcon,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
@@ -99,11 +103,11 @@ export function DataTable<TData, TValue>({
           <tbody className="divide-y">
             {table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td
-                  colSpan={columns.length}
-                  className="py-10 text-center text-sm text-muted-foreground"
-                >
-                  Không có dữ liệu
+                <td colSpan={columns.length}>
+                  <div className="flex flex-col items-center justify-center gap-3 py-14">
+                    {emptyIcon ?? <Inbox className="h-10 w-10 text-muted-foreground/40" />}
+                    <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -121,14 +125,23 @@ export function DataTable<TData, TValue>({
         </table>
       </div>
 
-      {/* Pagination */}
-      {table.getPageCount() > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            {table.getFilteredRowModel().rows.length} kết quả —
-            trang {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
-          </span>
+      {/* Pagination — always visible */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>
+          {table.getFilteredRowModel().rows.length} kết quả
+          {table.getPageCount() > 1 && (
+            <> — trang {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}</>
+          )}
+        </span>
+        {table.getPageCount() > 1 && (
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              className="rounded-lg px-2 py-1 text-xs hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+            >
+              «
+            </button>
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
@@ -136,6 +149,28 @@ export function DataTable<TData, TValue>({
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
+            {/* Page number buttons — show up to 5 around current */}
+            {Array.from({ length: Math.min(5, table.getPageCount()) }, (_, i) => {
+              const cur = table.getState().pagination.pageIndex
+              const total = table.getPageCount()
+              const start = Math.max(0, Math.min(cur - 2, total - 5))
+              const page = start + i
+              if (page >= total) return null
+              return (
+                <button
+                  key={page}
+                  onClick={() => table.setPageIndex(page)}
+                  className={cn(
+                    'rounded-lg min-w-[28px] px-2 py-1 text-xs',
+                    page === cur
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted',
+                  )}
+                >
+                  {page + 1}
+                </button>
+              )
+            })}
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
@@ -143,9 +178,16 @@ export function DataTable<TData, TValue>({
             >
               <ChevronRight className="h-4 w-4" />
             </button>
+            <button
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              className="rounded-lg px-2 py-1 text-xs hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+            >
+              »
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

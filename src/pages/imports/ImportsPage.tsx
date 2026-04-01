@@ -143,6 +143,7 @@ export default function ImportsPage() {
 
   return (
     <PageLayout
+      loading={loading}
       title="Nhập hàng"
       action={
         <button
@@ -192,15 +193,12 @@ export default function ImportsPage() {
         </span>
       </div>
 
-      {loading ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">Đang tải...</p>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          searchPlaceholder="Tìm theo mã lô, hoá đơn..."
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={filtered}
+        searchPlaceholder="Tìm theo mã lô, hoá đơn..."
+        emptyMessage="Chưa có phiếu nhập hàng nào."
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

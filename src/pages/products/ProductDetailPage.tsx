@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AlertTriangle, ArrowLeft, Pencil, Package, ToggleLeft, ToggleRight } from 'lucide-react'
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { ChannelBadge } from '@/components/shared/ChannelBadge'
 import { ProductFormDialog } from './ProductFormDialog'
@@ -14,7 +17,7 @@ import { usePriceStore } from '@/stores/usePriceStore'
 import { formatDate, formatVND } from '@/utils/formatters'
 import db from '@/db/db'
 import type { InventoryWithProduct } from '@/stores/useInventoryStore'
-import type { Product, PriceConfig, SalesChannel } from '@/types'
+import type { Product, PriceConfig, SalesChannel, StockMovement } from '@/types'
 
 // --------------- Component ---------------
 
@@ -285,6 +288,9 @@ export default function ProductDetailPage() {
           latestCostPrices={latestCostPrices}
           channels={channels}
         />
+
+        {/* ---- Lịch sử bán hàng ---- */}
+        <SalesHistorySection productId={product.id} channels={channels} />
       </div>
 
       <ProductFormDialog open={editOpen} onClose={() => setEditOpen(false)} editing={product} />
@@ -364,6 +370,88 @@ function InventorySection({
           </tbody>
         </table>
       )}
+    </div>
+  )
+}
+
+// --------------- Sales history section ---------------
+
+function SalesHistorySection({ productId, channels }: { productId: string; channels: SalesChannel[] }) {
+  const [movements, setMovements] = useState<StockMovement[]>([])
+
+  useEffect(() => {
+    db.stockMovements
+      .where('productId')
+      .equals(productId)
+      .filter((m) => m.type === 'sale')
+      .toArray()
+      .then(setMovements)
+  }, [productId])
+
+  if (movements.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card p-5">
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Lịch sử bán hàng
+        </h3>
+        <p className="text-sm text-muted-foreground">Chưa có dữ liệu bán hàng.</p>
+      </div>
+    )
+  }
+
+  // Group by month + channelId
+  const channelMap = Object.fromEntries(channels.map((c) => [c.id, c]))
+  const channelIds = [...new Set(movements.map((m) => m.channelId).filter(Boolean))] as string[]
+
+  const byMonth: Record<string, Record<string, number>> = {}
+  for (const m of movements) {
+    const d = new Date(m.createdAt)
+    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (!byMonth[monthKey]) byMonth[monthKey] = {}
+    const chId = m.channelId ?? 'unknown'
+    byMonth[monthKey][chId] = (byMonth[monthKey][chId] ?? 0) + Math.abs(m.quantity)
+  }
+
+  const data = Object.entries(byMonth)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, counts]) => ({ month, ...counts }))
+
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Lịch sử bán hàng
+      </h3>
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+          <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+          <Tooltip
+            formatter={(value, name) => {
+              const chName = channelMap[String(name)]?.name ?? String(name)
+              return [String(value), chName] as [string, string]
+            }}
+          />
+          <Legend
+            formatter={(value) => channelMap[value]?.name ?? value}
+            wrapperStyle={{ fontSize: 12 }}
+          />
+          {channelIds.map((chId) => {
+            const ch = channelMap[chId]
+            return (
+              <Bar
+                key={chId}
+                dataKey={chId}
+                stackId="a"
+                fill={ch?.color ?? '#6b7280'}
+                name={chId}
+              />
+            )
+          })}
+          {movements.some((m) => !m.channelId) && (
+            <Bar dataKey="unknown" stackId="a" fill="#9ca3af" name="unknown" />
+          )}
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }

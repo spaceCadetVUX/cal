@@ -253,6 +253,7 @@ export default function ProductsPage() {
 
   return (
     <PageLayout
+      loading={loading}
       title="Sản phẩm"
       action={
         <button
@@ -322,15 +323,12 @@ export default function ProductsPage() {
         </span>
       </div>
 
-      {loading ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">Đang tải...</p>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          searchPlaceholder="Tìm theo tên, SKU, barcode..."
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={filtered}
+        searchPlaceholder="Tìm theo tên, SKU, barcode..."
+        emptyMessage="Chưa có sản phẩm nào. Thêm sản phẩm đầu tiên!"
+      />
 
       <ProductFormDialog
         open={dialogOpen}

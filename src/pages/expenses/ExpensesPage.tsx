@@ -624,15 +624,12 @@ export default function ExpensesPage() {
         )}
 
         {/* ---- Table ---- */}
-        {loading ? (
-          <p className="text-muted-foreground">Đang tải...</p>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={filtered}
-            searchPlaceholder="Tìm chi phí..."
-          />
-        )}
+        <DataTable
+          columns={columns}
+          data={loading ? [] : filtered}
+          searchPlaceholder="Tìm chi phí..."
+          emptyMessage={loading ? 'Đang tải...' : 'Chưa có chi phí nào.'}
+        />
       </div>
 
       {/* Form Dialog */}
