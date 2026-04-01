@@ -1,51 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 221 83% 53%;
+    /* ── Page chrome ─────────────────────────────────────── */
+    --background:         220 20% 97%;      /* barely-blue off-white page bg  */
+    --foreground:         222 47% 11%;      /* deep navy text                 */
+
+    /* ── Cards / surfaces ────────────────────────────────── */
+    --card:               0 0% 100%;        /* pure white cards pop on bg     */
+    --card-foreground:    222 47% 11%;
+    --popover:            0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* ── Brand ───────────────────────────────────────────── */
+    --primary:            243 75% 58%;      /* rich indigo                    */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+
+    /* ── Secondary surfaces ──────────────────────────────── */
+    --secondary:          220 14% 95%;
+    --secondary-foreground: 222 47% 11%;
+    --muted:              220 14% 95%;
+    --muted-foreground:   215 16% 47%;
+
+    /* ── Accent (hover bg, subtle highlight) ─────────────── */
+    --accent:             243 100% 97%;     /* whisper indigo for hover bg    */
+    --accent-foreground:  243 75% 45%;
+
+    /* ── Feedback ────────────────────────────────────────── */
+    --destructive:        0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 221 83% 53%;
-    --radius: 0.5rem;
+
+    /* ── Chrome ──────────────────────────────────────────── */
+    --border:             220 13% 91%;
+    --input:              220 13% 91%;
+    --ring:               243 75% 58%;
+    --radius:             0.625rem;
+
+    /* ── Sidebar — always dark navy ──────────────────────── */
+    --sidebar-bg:         222 47% 10%;
+    --sidebar-fg:         215 20% 68%;
+    --sidebar-fg-active:  0 0% 100%;
+    --sidebar-item-hover: 222 47% 16%;
+    --sidebar-item-active: 222 47% 18%;
+    --sidebar-border:     222 47% 17%;
+    --sidebar-accent:     243 75% 58%;     /* indigo accent for active mark  */
+
+    /* ── Chart palette ───────────────────────────────────── */
+    --chart-1: 243 75% 58%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 38  92% 50%;
+    --chart-4: 0   84% 60%;
+    --chart-5: 270 71% 56%;
+    --chart-6: 172 66% 42%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 221 83% 53%;
+    /* ── Page chrome ─────────────────────────────────────── */
+    --background:         222 47% 8%;       /* deep navy, not pure black      */
+    --foreground:         210 40% 96%;
+
+    /* ── Cards ───────────────────────────────────────────── */
+    --card:               222 47% 13%;      /* slightly lighter than bg       */
+    --card-foreground:    210 40% 96%;
+    --popover:            222 47% 14%;
+    --popover-foreground: 210 40% 96%;
+
+    /* ── Brand ───────────────────────────────────────────── */
+    --primary:            243 82% 67%;      /* brighter in dark for contrast  */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+
+    /* ── Secondary surfaces ──────────────────────────────── */
+    --secondary:          222 47% 18%;
+    --secondary-foreground: 210 40% 96%;
+    --muted:              222 47% 18%;
+    --muted-foreground:   215 20% 58%;
+
+    /* ── Accent ──────────────────────────────────────────── */
+    --accent:             243 40% 22%;
+    --accent-foreground:  243 82% 80%;
+
+    /* ── Feedback ────────────────────────────────────────── */
+    --destructive:        0 62% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 221 83% 53%;
+
+    /* ── Chrome ──────────────────────────────────────────── */
+    --border:             222 47% 20%;
+    --input:              222 47% 20%;
+    --ring:               243 82% 67%;
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    --sidebar-bg:         222 47% 7%;
+    --sidebar-fg:         215 20% 55%;
+    --sidebar-fg-active:  0 0% 100%;
+    --sidebar-item-hover: 222 47% 12%;
+    --sidebar-item-active: 222 47% 16%;
+    --sidebar-border:     222 47% 14%;
+    --sidebar-accent:     243 82% 67%;
   }
 }
 
@@ -53,8 +107,80 @@
   * {
     @apply border-border;
   }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* ── Custom scrollbar ──────────────────────────────────── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+
+  /* ── Focus ring ─────────────────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* ── Selection ──────────────────────────────────────────── */
+  ::selection {
+    background: hsl(var(--primary) / 0.15);
+    color: hsl(var(--foreground));
+  }
+
+  /* ── Number inputs no spinner ───────────────────────────── */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+  input[type='number'] { -moz-appearance: textfield; }
+}
+
+@layer utilities {
+  /* Sidebar-aware color helpers (sidebar is always dark navy) */
+  .bg-sidebar        { background-color: hsl(var(--sidebar-bg)); }
+  .text-sidebar      { color: hsl(var(--sidebar-fg)); }
+  .text-sidebar-active { color: hsl(var(--sidebar-fg-active)); }
+  .bg-sidebar-hover  { background-color: hsl(var(--sidebar-item-hover)); }
+  .bg-sidebar-active { background-color: hsl(var(--sidebar-item-active)); }
+  .border-sidebar    { border-color: hsl(var(--sidebar-border)); }
+  .text-sidebar-accent { color: hsl(var(--sidebar-accent)); }
+
+  /* Card with shadow */
+  .card-elevated {
+    @apply rounded-xl border bg-card shadow-sm;
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.07), 0 1px 2px -1px rgba(0,0,0,0.06);
+  }
+  .dark .card-elevated {
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.3);
+  }
+
+  /* Tabular numbers everywhere */
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* Smooth color transitions for interactive elements */
+  .transition-theme {
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
   }
 }

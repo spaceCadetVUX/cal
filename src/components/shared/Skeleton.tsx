@@ -6,7 +6,15 @@ import { cn } from '@/lib/utils'
 
 export function Skeleton({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={cn('animate-pulse rounded-md bg-muted', className)} style={style} />
+    <div
+      className={cn('rounded-md bg-muted/70', className)}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground)/0.08) 37%, hsl(var(--muted)) 63%)',
+        backgroundSize: '400% 100%',
+        animation: 'shimmer 1.4s ease-in-out infinite',
+        ...style,
+      }}
+    />
   )
 }
 

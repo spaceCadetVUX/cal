@@ -5,7 +5,6 @@ import { NAV_ITEMS } from '@/constants/navItems'
 import { useTheme } from '@/hooks/useTheme'
 import { GlobalSearch } from '@/components/shared/GlobalSearch'
 
-// Derive page title from current pathname
 function usePageTitle(): string {
   const { pathname } = useLocation()
   if (pathname === '/') return 'Dashboard'
@@ -13,14 +12,10 @@ function usePageTitle(): string {
   return match?.label ?? 'Seller Manager'
 }
 
-// Context-aware "create new" target based on current path
 function useCreateNewPath(): string | null {
   const { pathname } = useLocation()
   if (pathname.startsWith('/orders')) return '/orders/new'
-  if (pathname.startsWith('/products')) return '/products'   // opens add dialog — just navigate to list for now
   if (pathname.startsWith('/imports')) return '/imports/new'
-  if (pathname.startsWith('/customers')) return '/customers'
-  if (pathname.startsWith('/suppliers')) return '/suppliers'
   return null
 }
 
@@ -29,18 +24,14 @@ export function Header() {
   const pageTitle = usePageTitle()
   const navigate = useNavigate()
   const createPath = useCreateNewPath()
-
   const [searchOpen, setSearchOpen] = useState(false)
 
-  // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Ctrl+K — open global search
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
         setSearchOpen(true)
       }
-      // Ctrl+N — context-aware create new
       if ((e.ctrlKey || e.metaKey) && e.key === 'n' && createPath) {
         e.preventDefault()
         navigate(createPath)
@@ -50,57 +41,65 @@ export function Header() {
     return () => window.removeEventListener('keydown', handler)
   }, [createPath, navigate])
 
+  const iconBtn = 'flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-theme hover:bg-accent hover:text-accent-foreground'
+
   return (
     <>
-      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-6">
-        <h1 className="text-base font-semibold">{pageTitle}</h1>
+      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card/70 backdrop-blur-sm px-5 gap-4">
+        {/* Page title */}
+        <h1 className="text-sm font-semibold text-foreground truncate">{pageTitle}</h1>
 
-        <div className="flex items-center gap-1">
-          {/* Global search trigger */}
+        {/* Right controls */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Search trigger — pill style */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden sm:flex items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="hidden md:flex items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-theme hover:border-primary/40 hover:text-foreground hover:shadow-sm"
             title="Tìm kiếm (Ctrl+K)"
           >
             <Search className="h-3.5 w-3.5" />
-            <span className="text-xs">Tìm kiếm...</span>
-            <kbd className="ml-2 rounded border px-1.5 py-0.5 text-xs font-mono">⌃K</kbd>
+            <span>Tìm kiếm...</span>
+            <span className="ml-1 flex items-center gap-0.5">
+              <kbd className="rounded border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-mono leading-none text-muted-foreground">⌃</kbd>
+              <kbd className="rounded border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-mono leading-none text-muted-foreground">K</kbd>
+            </span>
           </button>
-          {/* Mobile search icon */}
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="flex sm:hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
-            title="Tìm kiếm (Ctrl+K)"
-          >
+
+          {/* Mobile search */}
+          <button onClick={() => setSearchOpen(true)} className={`md:hidden ${iconBtn}`} title="Tìm kiếm">
             <Search className="h-4 w-4" />
           </button>
 
-          {/* Ctrl+N shortcut hint */}
+          {/* Create new shortcut */}
           {createPath && (
             <button
               onClick={() => navigate(createPath)}
-              className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="hidden lg:flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-95"
               title="Tạo mới (Ctrl+N)"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
+              Tạo mới
             </button>
           )}
 
-          {/* Notification bell — placeholder */}
-          <button
-            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
-            title="Thông báo"
-          >
+          {/* Divider */}
+          <div className="mx-0.5 h-5 w-px bg-border" />
+
+          {/* Bell */}
+          <button className={iconBtn} title="Thông báo">
             <Bell className="h-4 w-4" />
           </button>
 
-          {/* Dark / light toggle */}
+          {/* Theme toggle */}
           <button
             onClick={toggle}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+            className={iconBtn}
             title={theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {theme === 'dark'
+              ? <Sun className="h-4 w-4" />
+              : <Moon className="h-4 w-4" />
+            }
           </button>
         </div>
       </header>
